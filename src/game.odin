@@ -13,7 +13,7 @@ State :: struct {
 initialize :: proc(game: ^State) {
 	using game
 
-	if (SDL.Init({.AUDIO, .VIDEO, .EVENTS, .TIMER}) != 0) {
+	if (SDL.Init({.AUDIO, .VIDEO, .EVENTS}) != 0) {
 		fmt.eprintln("ERROR: could not initialize SDL.")
 		os.exit(1)
 	}
@@ -23,7 +23,7 @@ initialize :: proc(game: ^State) {
 		SDL.WINDOWPOS_CENTERED,
 		800,
 		900,
-		{},
+		{.BORDERLESS},
 	);if window == nil {
 		fmt.eprintln("ERROR: window bad")
 		os.exit(1)
@@ -54,7 +54,12 @@ process_input :: proc(game: ^State) {
 	}
 }
 update :: proc(game: ^State) {}
-render :: proc(game: ^State) {}
+render :: proc(game: ^State) {
+	using game
+	SDL.SetRenderDrawColor(renderer, 255, 0, 0, 255)
+	SDL.RenderClear(renderer)
+	SDL.RenderPresent(renderer)
+}
 
 run :: proc(game: ^State) {
 	for game.is_running {
