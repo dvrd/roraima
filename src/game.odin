@@ -5,13 +5,18 @@ import "core:os"
 import SDL "vendor:sdl2"
 import "vendor:sdl2/image"
 
-Vec2 :: [2]i32
+FPS :: 60
+MS_PER_FRAME :: 1000 / FPS
+
+Vec2 :: [2]f32
+Screen :: [2]i32
 
 State :: struct {
-	window:     ^SDL.Window,
-	renderer:   ^SDL.Renderer,
-	is_running: bool,
-	screen:     Vec2,
+	window:        ^SDL.Window,
+	renderer:      ^SDL.Renderer,
+	is_running:    bool,
+	screen:        Screen,
+	ms_prev_frame: i32,
 }
 
 initialize :: proc(game: ^State) {
@@ -33,12 +38,14 @@ initialize :: proc(game: ^State) {
 		screen.x,
 		screen.y,
 		{.BORDERLESS},
-	);if window == nil {
+	)
+	if window == nil {
 		fmt.eprintln("ERROR: window bad")
 		os.exit(1)
 	}
 
-	renderer = SDL.CreateRenderer(window, -1, {});if renderer == nil {
+	renderer = SDL.CreateRenderer(window, -1, {})
+	if renderer == nil {
 		fmt.eprintln("ERROR: renderer bad")
 		os.exit(1)
 	}
@@ -65,9 +72,23 @@ process_input :: proc(game: ^State) {
 	}
 }
 
-setup :: proc(game: ^State) {}
+player_position: Vec2
+player_velocity: Vec2
 
-update :: proc(game: ^State) {}
+setup :: proc(game: ^State) {
+	player_position = {10, 20}
+}
+
+update :: proc(game: ^State) {
+	using game
+
+	//  NOTE: If we are too fast, waste some time until we reach the MS_PER_FRAME
+	wait(ms_prev_frame + MS_PER_FRAME)
+
+	ms_prev_frame = SDL_GetTicks()
+
+	player_position += {0.5, 0.5}
+}
 
 render :: proc(game: ^State) {
 	using game
@@ -81,7 +102,13 @@ render :: proc(game: ^State) {
 	texture := SDL.CreateTextureFromSurface(renderer, surface)
 	defer SDL.DestroyTexture(texture)
 
-	dst := SDL.Rect{10, 10, 32, 32}
+	sprite_res: i32 = 64
+	dst := SDL.Rect {
+		cast(i32)player_position.x,
+		cast(i32)player_position.y,
+		sprite_res,
+		sprite_res,
+	}
 	SDL.RenderCopy(renderer, texture, nil, &dst)
 
 	SDL.RenderPresent(renderer)
@@ -98,6 +125,8 @@ run :: proc(game: ^State) {
 
 destroy :: proc(game: ^State) {
 	using game
+
 	SDL.DestroyWindow(window)
 	SDL.DestroyRenderer(renderer)
+	SDL.Quit()
 }
