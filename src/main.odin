@@ -3,5 +3,8 @@ package roraima
 import "core:fmt"
 
 main :: proc() {
-	fmt.println("Hello world")
+	game := new(State)
+	initialize(game)
+	run(game)
+	defer destroy(game)
 }
