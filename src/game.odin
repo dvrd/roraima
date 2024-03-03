@@ -22,7 +22,7 @@ initialize :: proc(game: ^State) {
 		SDL.WINDOWPOS_CENTERED,
 		SDL.WINDOWPOS_CENTERED,
 		800,
-		900,
+		600,
 		{.BORDERLESS},
 	);if window == nil {
 		fmt.eprintln("ERROR: window bad")
