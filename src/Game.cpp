@@ -1,5 +1,6 @@
 #include "Game.h"
 #include <SDL2/SDL_image.h>
+#include <glm/glm.hpp>
 #include <iostream>
 
 Game::Game() { std::cout << "Game constructor called!" << std::endl; }
@@ -11,10 +12,8 @@ void Game::Initialize() {
     std::cerr << "ERROR: could not initialize SDL." << std::endl;
     return;
   }
-
   SDL_DisplayMode displayMode;
   SDL_GetCurrentDisplayMode(0, &displayMode);
-
   windowWidth = displayMode.w;
   windowHeight = displayMode.h;
   window = SDL_CreateWindow("Roraima v1.0.0", SDL_WINDOWPOS_CENTERED,
@@ -23,15 +22,12 @@ void Game::Initialize() {
   if (!window) {
     std::cerr << "ERROR: could not create SDL window." << std::endl;
   }
-
   renderer = SDL_CreateRenderer(
       window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
   if (!renderer) {
     std::cerr << "ERROR: could not create SDL renderer." << std::endl;
   }
-
   SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
-
   isRunning = true;
 }
 
@@ -50,12 +46,25 @@ void Game::ProcessInput() {
     }
   }
 }
+
+glm::vec2 playerPosition;
+glm::vec2 playerVelocity;
+
 void Game::Setup() {
-  // TODO: Initialize game objects
+  playerPosition = glm::vec2(20.0, 20.0);
+  playerVelocity = glm::vec2(1.0, 0.0);
 }
 
 void Game::Update() {
-  // TODO: Update game objects
+  //  NOTE: If we are too fast, waste some time until we reach the
+  //  MILLISECS_PER_FRAME
+  while (!SDL_TICKS_PASSED(SDL_GetTicks(),
+                           millisecsPreviousFrame + MILLISECS_PER_FRAME))
+    ;
+  // Store the current frame
+  millisecsPreviousFrame = SDL_GetTicks();
+  playerPosition.x += playerVelocity.x;
+  playerPosition.y += playerVelocity.y;
 }
 
 void Game::Render() {
@@ -67,7 +76,8 @@ void Game::Render() {
   SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
   SDL_FreeSurface(surface);
 
-  SDL_Rect dstRect = {10, 10, 32, 32};
+  SDL_Rect dstRect = {static_cast<int>(playerPosition.x),
+                      static_cast<int>(playerPosition.y), 64, 64};
 
   SDL_RenderCopy(renderer, texture, NULL, &dstRect);
   SDL_DestroyTexture(texture);
