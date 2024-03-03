@@ -1,4 +1,4 @@
-PROJ=game_engine
+PROJ=roraima
 CC=clang++
 DEPENDENCIES=sdl2, sdl2_image, sdl2_ttf, sdl2_mixer, lua
 WARNNINGS=-Wall -Wextra
