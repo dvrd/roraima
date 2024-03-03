@@ -1,3 +1,6 @@
-target/release
-target/debug
 debug.log
+
+.cache
+
+target/debug
+target/release
