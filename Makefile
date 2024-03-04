@@ -10,7 +10,7 @@ INCLUDE_LIBS=-I"./libs"
 IGNORE_ERRORS=2> /dev/null || true
 
 run: main
-	@echo "INFO: executing '$(PROJ)'\n"
+	@echo "INFO: executing '$(PROJ)'"
 	@$(OUT_DIR)/$(PROJ)
 
 main:
