@@ -5,7 +5,8 @@ WARNNINGS=-Wall -Wextra -Wfatal-errors
 C_VERSION=-std=c++17
 SRC_FILES=src/*.cpp \
 		  src/Game/*.cpp \
-		  src/Logger/*.cpp
+		  src/Logger/*.cpp \
+		  src/ECS/*.cpp
 
 OUT_DIR=target/debug
 INCLUDE_PATH=-Ilibs -Isrc
