@@ -1,6 +1,4 @@
+target
 debug.log
-
 .cache
 
-target/debug
-target/release
