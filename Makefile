@@ -6,23 +6,27 @@ RELEASE_OUT_DIR=target/release
 IGNORE_ERRORS=2> /dev/null || true
 
 run: build_debug
-	@echo "INFO: executing '$(PROJ)'\n"
+	@echo "BUILD_INFO: executing '$(PROJ)'\n"
 	@$(DEBUG_OUT_DIR)/$(PROJ)
 
 debug: build_debug
-	@echo "INFO: initializing debugger"
+	@echo "BUILD_INFO: initializing debugger"
 	@lldb $(DEBUG_OUT_DIR)/$(PROJ)
 
+release: build
+	@echo "BUILD_INFO: executing release version of '$(PROJ)'"
+	@$(RELEASE_OUT_DIR)/$(PROJ)
+
 clear:
-	@echo "INFO: removing binaries..."
+	@echo "BUILD_INFO: removing all binaries..."
 	@rm -rf target $(IGNORE_ERRORS)
 
 build_debug: $(DEBUG_OUT_DIR)
-	@echo "INFO: building..."
+	@echo "BUILD_INFO: building debug version..."
 	@odin build $(SRC_DIR) -out:$(DEBUG_OUT_DIR)/$(PROJ) -debug
 
 build: $(RELEASE_OUT_DIR)
-	@echo "INFO: building..."
+	@echo "BUILD_INFO: building release version..."
 	@odin build $(SRC_DIR) -out:$(RELEASE_OUT_DIR)/$(PROJ) -o:speed
 
 $(DEBUG_OUT_DIR):
