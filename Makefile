@@ -1,11 +1,15 @@
 PROJ=roraima
 CC=clang++
-DEPENDENCIES=sdl2, sdl2_image, sdl2_ttf, sdl2_mixer, lua
-WARNNINGS=-Wall -Wextra
+DEPENDENCIES=sdl2, sdl2_image, sdl2_ttf, sdl2_mixer, lua, spdlog
+WARNNINGS=-Wall -Wextra -Wfatal-errors
 C_VERSION=-std=c++17
-SRC_DIR=src
+SRC_FILES=src/*.cpp \
+		  src/Game/*.cpp \
+		  src/Logger/*.cpp
+
 OUT_DIR=target/debug
-INCLUDE_LIBS=-I"./libs"
+INCLUDE_PATH=-Ilibs -Isrc
+LINKER_FLAGS = `pkg-config --libs --cflags $(DEPENDENCIES)`
 
 IGNORE_ERRORS=2> /dev/null || true
 
@@ -22,7 +26,7 @@ clear:
 
 build: $(OUT_DIR)
 	@echo "INFO: building..."
-	@$(CC) $(SRC_DIR)/*.cpp $(WARNNINGS) $(C_VERSION) -o $(OUT_DIR)/$(PROJ) $(INCLUDE_LIBS) `pkg-config --libs --cflags $(DEPENDENCIES)`
+	@$(CC) $(SRC_FILES) $(WARNNINGS) $(C_VERSION) -o $(OUT_DIR)/$(PROJ) $(INCLUDE_PATH) $(LINKER_FLAGS)
 
 $(OUT_DIR):
 	@mkdir -p $(OUT_DIR)
