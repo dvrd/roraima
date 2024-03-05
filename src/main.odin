@@ -4,6 +4,8 @@ import "core:fmt"
 import "core:log"
 import "core:os"
 
+DEBUG_FILE :: "debug.log"
+
 when ODIN_DEBUG {
 	lowest :: log.Level.Debug
 } else {
@@ -11,23 +13,17 @@ when ODIN_DEBUG {
 }
 
 main :: proc() {
-	console_logger := log.create_console_logger(
-		lowest,
-		log.Options{.Terminal_Color, .Level, .Time, .Date},
-	)
+	logger_options := log.Options{.Terminal_Color, .Level, .Time, .Date}
+	console_logger := log.create_console_logger(lowest, logger_options)
 	when ODIN_DEBUG {
-		fd, err := os.open("./debug.log", os.O_CREATE | os.O_RDWR | os.O_APPEND)
+		fd, err := os.open(DEBUG_FILE, os.O_RDWR | os.O_CREATE | os.O_APPEND)
 		if err != os.ERROR_NONE {
 			fmt.eprintln(ERROR_MSG[err])
 			os.exit(1)
 		}
 		defer os.close(fd)
 
-		file_logger := log.create_file_logger(
-			fd,
-			lowest,
-			log.Options{.Terminal_Color, .Level, .Time, .Date},
-		)
+		file_logger := log.create_file_logger(fd, lowest, logger_options)
 		context.logger = log.create_multi_logger(file_logger, console_logger)
 	} else {
 		context.logger = console_logger
