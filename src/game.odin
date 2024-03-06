@@ -32,6 +32,16 @@ State :: struct {
 		fps:         u32,
 		frames:      u32,
 	},
+	registry:      ^Registry,
+}
+
+new_game :: proc() -> ^State {
+	registry := new_registry()
+	game := new(State)
+	game.registry = registry
+	game.is_running = false
+
+	return game
 }
 
 initialize :: proc(game: ^State) {
@@ -88,6 +98,9 @@ process_input :: proc(game: ^State) {
 
 setup :: proc(game: ^State) {
 	using game
+
+	tank := create_entity(registry)
+	truck := create_entity(registry)
 
 	player = {
 		pos = {10, 20},
@@ -157,10 +170,14 @@ run :: proc(game: ^State) {
 	}
 }
 
-destroy :: proc(game: ^State) {
+destroy_game :: proc(game: ^State) {
 	using game
+
+	free(registry)
 
 	SDL.DestroyWindow(window)
 	SDL.DestroyRenderer(renderer)
 	SDL.Quit()
+
+	inform("Game stopped. Have a nice day!")
 }

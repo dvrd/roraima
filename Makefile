@@ -2,6 +2,7 @@ PROJ=roraima
 SRC_DIR=src
 DEBUG_OUT_DIR=target/debug
 RELEASE_OUT_DIR=target/release
+COLLECTIONS=-collection:roraima=src
 
 IGNORE_ERRORS=2> /dev/null || true
 
@@ -23,11 +24,11 @@ clear:
 
 build_debug: $(DEBUG_OUT_DIR)
 	@echo "BUILD_INFO: building debug version..."
-	@odin build $(SRC_DIR) -out:$(DEBUG_OUT_DIR)/$(PROJ) -debug
+	@odin build $(SRC_DIR) -out:$(DEBUG_OUT_DIR)/$(PROJ) -debug $(COLECTIONS)
 
 build: $(RELEASE_OUT_DIR)
 	@echo "BUILD_INFO: building release version..."
-	@odin build $(SRC_DIR) -out:$(RELEASE_OUT_DIR)/$(PROJ) -o:speed
+	@odin build $(SRC_DIR) -out:$(RELEASE_OUT_DIR)/$(PROJ) -o:speed $(COLECTIONS)
 
 $(DEBUG_OUT_DIR):
 	@mkdir -p $(DEBUG_OUT_DIR)

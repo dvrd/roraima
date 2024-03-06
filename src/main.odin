@@ -9,8 +9,10 @@ main :: proc() {
 
 	inform("Initializing game enginre 'Roraima v1.0.0'")
 
+	registry := new(Registry)
 	game := new(State)
+	game.registry = registry
 	initialize(game)
 	run(game)
-	defer destroy(game)
+	defer destroy_game(game)
 }
