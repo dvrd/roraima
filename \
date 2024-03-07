@@ -63,19 +63,15 @@ require_component :: proc(system: ^System, component: ComponentType) {
 
 update_movement :: proc(system: ^System, delta: f32) {
 	for entity in system.entities {
-		transform_component := get_component(entity, .Transform)
-		rigid_body_component := get_component(entity, .RigidBody)
+		transform := get_component(entity, .Transform)
+		rigid_body := get_component(entity, .RigidBody)
 
-		if transform_component != nil && rigid_body_component != nil {
-			transform := transform_component.data.(Transform)
-			rigid_body := rigid_body_component.data.(RigidBody)
-
+		if transform != nil && rigid_body != nil {
+			transform := transform.data.(Transform)
+			rigid_body := rigid_body.data.(RigidBody)
+			error("DATA ERROR HERE %v | %v", transform.position)
 			transform.position.x += rigid_body.velocity.x * delta
 			transform.position.y += rigid_body.velocity.y * delta
-
-			transform_component.data = transform
-			rigid_body_component.data = rigid_body
-
 			inform(
 				"Entity moved to [x = %v, y = %v]",
 				transform.position.x,

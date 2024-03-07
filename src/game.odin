@@ -20,10 +20,6 @@ State :: struct {
 	is_running:    bool,
 	screen:        [2]i32,
 	ms_prev_frame: u32,
-	player:        struct {
-		pos: Vec2,
-		vel: Vec2,
-	},
 	clock:         struct {
 		delta:       f32,
 		delta_ms:    u32,
@@ -36,6 +32,8 @@ State :: struct {
 }
 
 new_game :: proc() -> ^State {
+	inform("Initializing game engine 'Roraima v1.0.0'")
+
 	registry := new_registry()
 	game := new(State)
 	game.registry = registry
@@ -99,13 +97,19 @@ process_input :: proc(game: ^State) {
 setup :: proc(game: ^State) {
 	using game
 
+	add_system(registry, new_system(.Movement))
+	add_system(registry, new_system(.Render))
+
 	tank := create_entity(registry)
 	truck := create_entity(registry)
 
-	player = {
-		pos = {10, 20},
-		vel = {100, 0},
-	}
+	add_component(tank, new_transform({10, 10}, {1, 1}, 0))
+	add_component(tank, new_rigid_body({100, 0}))
+	add_component(tank, new_sprite(10, 10))
+
+	add_component(truck, new_transform({10, 20}, {1, 1}, 0))
+	add_component(truck, new_rigid_body({120, 0}))
+	add_component(truck, new_sprite(10, 10))
 
 	clock = {
 		fps        = FPS,
@@ -132,7 +136,10 @@ update :: proc(game: ^State) {
 		debug("FPS: %v", clock.fps)
 	}
 
-	player.pos += player.vel * clock.delta
+	movement_system := get_system(registry, .Movement)
+	update_movement(movement_system, clock.delta)
+
+	update_registry(registry)
 
 	clock.last_frame = SDL.GetTicks()
 }
@@ -143,20 +150,8 @@ render :: proc(game: ^State) {
 	SDL.SetRenderDrawColor(renderer, 21, 21, 21, 255)
 	SDL.RenderClear(renderer)
 
-	// Draw a PNG texture
-	surface := image.Load("./assets/images/tank-tiger-right.png")
-	defer SDL.FreeSurface(surface)
-	texture := SDL.CreateTextureFromSurface(renderer, surface)
-	defer SDL.DestroyTexture(texture)
-
-	sprite_res: i32 = 64
-	dst := SDL.Rect {
-		cast(i32)player.pos.x,
-		cast(i32)player.pos.y,
-		sprite_res,
-		sprite_res,
-	}
-	SDL.RenderCopy(renderer, texture, nil, &dst)
+	render_system := get_system(registry, .Render)
+	update_render(render_system, renderer)
 
 	SDL.RenderPresent(renderer)
 }
@@ -173,7 +168,7 @@ run :: proc(game: ^State) {
 destroy_game :: proc(game: ^State) {
 	using game
 
-	free(registry)
+	destroy_registry(registry)
 
 	SDL.DestroyWindow(window)
 	SDL.DestroyRenderer(renderer)

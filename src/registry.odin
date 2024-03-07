@@ -9,7 +9,7 @@ Registry :: struct {
 	n_entities:                  int,
 	component_pools:             [dynamic]Pool,
 	entity_component_signatures: [dynamic]Signature,
-	systems:                     map[int]^System,
+	systems:                     map[SystemType]^System,
 	entities_to_add:             [dynamic]^Entity,
 	entities_to_kill:            [dynamic]^Entity,
 }
@@ -21,6 +21,9 @@ new_registry :: proc() -> ^Registry {
 		os.exit(1)
 	}
 	reg.n_entities = 0
+	reg.component_pools = make([dynamic]Pool, 100)
+
+	inform("Registry constructor called")
 
 	return reg
 }
@@ -28,12 +31,20 @@ new_registry :: proc() -> ^Registry {
 destroy_registry :: proc(registry: ^Registry) {
 	using registry
 
+	for pool in component_pools {
+		for component in pool {
+			free(component)
+		}
+		delete(pool)
+	}
 	delete(component_pools)
 	delete(entity_component_signatures)
 	delete(entities_to_add)
 	delete(entities_to_kill)
 	delete(systems)
 	free(registry)
+
+	inform("Registry destructor called")
 }
 
 register_entity :: proc(registry: ^Registry, entity: ^Entity) {
@@ -67,47 +78,12 @@ update_registry :: proc(registry: ^Registry) {
 	// entities_to_kill.clear()
 }
 
-add_component :: proc(
-	registry: ^Registry,
-	entity: ^Entity,
-	component: ^Component,
-) {
+add_system :: proc(registry: ^Registry, system: ^System) {
 	using registry
-
-	if (component.id >= cap(component_pools)) {
-		resize(&component_pools, component.id + 1)
-	}
-
-	if component_pools[component.id] == nil {
-		new_component_pool := make(Pool)
-		component_pools[component.id] = new_component_pool
-	}
-
-	component_pool := component_pools[component.id]
-
-	if entity.id >= cap(component_pool) {
-		resize(&component_pool, n_entities)
-	}
-
-	component_pool[entity.id] = component
-
-	entity_component_signatures[entity.id] += {component.id}
+	systems[system.id] = system
 }
 
-remove_component :: proc(
-	registry: ^Registry,
-	component: ^Component,
-	entity: ^Entity,
-) {
+get_system :: proc(registry: ^Registry, id: SystemType) -> ^System {
 	using registry
-	entity_component_signatures[entity.id] -= {component.id}
-}
-
-has_component :: proc(
-	registry: ^Registry,
-	component: ^Component,
-	entity: ^Entity,
-) -> bool {
-	using registry
-	return component.id in entity_component_signatures[entity.id]
+	return systems[id]
 }
