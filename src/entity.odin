@@ -66,12 +66,12 @@ add_component :: proc(entity: ^Entity, component: ^Component) {
 	)
 }
 
-remove_component :: proc(entity: ^Entity, component: ^Component) {
-	entity.owner.entity_component_signatures[entity.id] -= {component.id}
+remove_component :: proc(entity: ^Entity, component: ComponentType) {
+	entity.owner.entity_component_signatures[entity.id] -= {component}
 }
 
-has_component :: proc(entity: ^Entity, component: ^Component) -> bool {
-	return component.id in entity.owner.entity_component_signatures[entity.id]
+has_component :: proc(entity: ^Entity, component: ComponentType) -> bool {
+	return component in entity.owner.entity_component_signatures[entity.id]
 }
 
 get_component :: proc(
