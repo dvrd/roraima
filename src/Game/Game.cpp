@@ -1,12 +1,19 @@
 #include "Game.h"
+#include <Components/RigidBodyComponent.h>
+#include <Components/SpriteComponent.h>
+#include <Components/TransformComponent.h>
 #include <ECS/ECS.h>
 #include <Logger/Logger.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <Systems/MovementSystem.h>
+#include <Systems/RenderSystem.h>
 #include <glm/glm.hpp>
 
 Game::Game() {
   isRunning = false;
+  registry = std::make_unique<Registry>();
+
   Logger::Log("Game constructor called!");
 }
 
@@ -53,20 +60,27 @@ void Game::ProcessInput() {
 }
 
 void Game::Setup() {
-  // TODO:
-  // Entity  tank = registry.CreateEntity();
-  // tank.AddComponent<TransformComponent>();
-  // tank.AddComponent<BoxColliderComponent>();
-  // tank.AddComponent<SpriteComponent>("./assets/images/tank.png")
+  registry->AddSystem<MovementSystem>();
+  registry->AddSystem<RenderSystem>();
+
+  Entity tank = registry->CreateEntity();
+  tank.AddComponent<TransformComponent>(glm::vec2(10, 30), glm::vec2(1, 1), 0);
+  tank.AddComponent<RigidBodyComponent>(glm::vec2(50, 0));
+  tank.AddComponent<SpriteComponent>(10, 10);
+
+  Entity truck = registry->CreateEntity();
+  truck.AddComponent<TransformComponent>(glm::vec2(10, 50), glm::vec2(1, 1), 0);
+  truck.AddComponent<RigidBodyComponent>(glm::vec2(20, 10));
+  truck.AddComponent<SpriteComponent>(10, 50);
 }
 
 void Game::Update() {
-  // int timeToWait =
-  //     MILLISECS_PER_FRAME - (SDL_GetTicks() - millisecsPreviousFrame);
-  //
-  // if (timeToWait > 0 && timeToWait <= MILLISECS_PER_FRAME) {
-  //   SDL_Delay(timeToWait);
-  // }
+  int timeToWait =
+      MILLISECS_PER_FRAME - (SDL_GetTicks() - millisecsPreviousFrame);
+
+  if (timeToWait > 0 && timeToWait <= MILLISECS_PER_FRAME) {
+    SDL_Delay(timeToWait);
+  }
 
   // The difference in ticks since the last frame, converted to seconds
   double deltaTime = (SDL_GetTicks() - millisecsPreviousFrame) / 1000.0;
@@ -74,18 +88,17 @@ void Game::Update() {
   // Store the "previous" frame time
   millisecsPreviousFrame = SDL_GetTicks();
 
-  // TODO:
-  // MovementSystem.Update();
-  // CollisionSystem.Update();
-  // DamangeSystem.Update();
+  // Ask all the systems to update
+  registry->GetSystem<MovementSystem>().Update(deltaTime);
+
+  registry->Update();
 }
 
 void Game::Render() {
   SDL_SetRenderDrawColor(renderer, 21, 21, 21, 255);
   SDL_RenderClear(renderer);
 
-  // TODO:
-  // Render game
+  registry->GetSystem<RenderSystem>().Update(renderer);
 
   SDL_RenderPresent(renderer);
 }
