@@ -6,6 +6,7 @@
 #include <SDL2/SDL_image.h>
 #include <Systems/MovementSystem.h>
 #include <Systems/RenderSystem.h>
+#include <fstream>
 #include <glm/glm.hpp>
 
 Game::Game() {
@@ -58,7 +59,7 @@ void Game::ProcessInput() {
   }
 }
 
-void Game::Setup() {
+void Game::LoadLevel(int level) {
   registry->AddSystem<MovementSystem>();
   registry->AddSystem<RenderSystem>();
 
@@ -66,17 +67,49 @@ void Game::Setup() {
                          "assets/images/tank-panther-right.png");
   assetStore->AddTexture(renderer, "truck-image",
                          "assets/images/truck-ford-right.png");
+  assetStore->AddTexture(renderer, "tilemap-image",
+                         "assets/tilemaps/jungle.png");
+
+  int tileSize = 32;
+  double tileScale = 2.25;
+  int mapNumCols = 25;
+  int mapNumRows = 20;
+  std::fstream mapFile;
+  mapFile.open("assets/tilemaps/jungle.map");
+
+  for (int y = 0; y < mapNumRows; y++) {
+    for (int x = 0; x < mapNumCols; x++) {
+      char ch;
+      mapFile.get(ch);
+      int srcRectY = std::atoi(&ch) * tileSize;
+      mapFile.get(ch);
+      int srcRectX = std::atoi(&ch) * tileSize;
+      mapFile.ignore();
+
+      Entity tile = registry->CreateEntity();
+      double posX = x * tileSize * tileScale;
+      double posY = y * tileSize * tileScale;
+      glm::vec2 position = glm::vec2(posX, posY);
+      glm::vec2 scale = glm::vec2(tileScale, tileScale);
+      tile.AddComponent<TransformComponent>(position, scale, 0);
+      tile.AddComponent<SpriteComponent>("tilemap-image", tileSize, tileSize,
+                                         srcRectX, srcRectY, 0);
+    }
+  }
+  mapFile.close();
 
   Entity tank = registry->CreateEntity();
-  tank.AddComponent<TransformComponent>(glm::vec2(10, 30), glm::vec2(1, 1), 0);
+  tank.AddComponent<TransformComponent>(glm::vec2(10, 10), glm::vec2(1, 1), 0);
   tank.AddComponent<RigidBodyComponent>(glm::vec2(50, 0));
-  tank.AddComponent<SpriteComponent>("tank-image", 50, 50);
+  tank.AddComponent<SpriteComponent>("tank-image", 32, 32, 0, 0, 100);
 
   Entity truck = registry->CreateEntity();
-  truck.AddComponent<TransformComponent>(glm::vec2(10, 50), glm::vec2(1, 1), 0);
-  truck.AddComponent<RigidBodyComponent>(glm::vec2(20, 10));
-  truck.AddComponent<SpriteComponent>("truck-image", 50, 50);
+  truck.AddComponent<TransformComponent>(glm::vec2(10, 10), glm::vec2(1, 1), 0);
+  truck.AddComponent<RigidBodyComponent>(glm::vec2(50, 0));
+  truck.AddComponent<SpriteComponent>("truck-image", 32, 32, 0, 0, 10);
 }
+
+void Game::Setup() { LoadLevel(1); }
 
 void Game::Update() {
   int timeToWait =
