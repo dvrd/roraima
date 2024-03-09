@@ -29,11 +29,9 @@ new_system :: proc(type: SystemType) -> ^System {
 
 	switch type {
 	case .Render:
-		require_component(sys, .Transform)
-		require_component(sys, .Sprite)
+		sys.component_signature = {.Transform, .Sprite}
 	case .Movement:
-		require_component(sys, .Transform)
-		require_component(sys, .RigidBody)
+		sys.component_signature = {.Transform, .RigidBody}
 	}
 
 	return sys
@@ -57,11 +55,7 @@ remove_entity_from_system :: proc(system: ^System, entity: ^Entity) {
 	}
 }
 
-require_component :: proc(system: ^System, component: ComponentType) {
-	system.component_signature += {component}
-}
-
-update_movement :: proc(system: ^System, delta: f32) {
+update_movement :: proc(system: ^System, delta: f64) {
 	for entity in system.entities {
 		transform_component := get_component(entity, .Transform)
 		rigid_body_component := get_component(entity, .RigidBody)
@@ -76,32 +70,42 @@ update_movement :: proc(system: ^System, delta: f32) {
 			transform_component.data = transform
 			rigid_body_component.data = rigid_body
 
-			inform(
+			debug(
 				"Entity moved to [x = %v, y = %v]",
 				transform.position.x,
 				transform.position.y,
 			)
-
 		}
 	}
 }
 
-update_render :: proc(system: ^System, renderer: ^SDL.Renderer) {
+update_render :: proc(
+	system: ^System,
+	renderer: ^SDL.Renderer,
+	asset_store: ^AssetStore,
+) {
 	for entity in system.entities {
 		transform := get_component(entity, .Transform)
 		sprite := get_component(entity, .Sprite)
 		if transform != nil && sprite != nil {
 			transform := transform.data.(Transform)
 			sprite := sprite.data.(Sprite)
-			obj_rect := SDL.Rect {
+			dst_rect := SDL.Rect {
 				cast(i32)transform.position.x,
 				cast(i32)transform.position.y,
-				sprite.width,
-				sprite.height,
+				i32(cast(f64)sprite.width * transform.scale.x),
+				i32(cast(f64)sprite.height * transform.scale.y),
 			}
-			SDL.SetRenderDrawColor(renderer, 255, 255, 255, 255)
-			SDL.RenderFillRect(renderer, &obj_rect)
 
+			SDL.RenderCopyEx(
+				renderer,
+				asset_store[sprite.id],
+				&sprite.src_rect,
+				&dst_rect,
+				transform.rotation,
+				nil,
+				.NONE,
+			)
 		}
 	}
 }

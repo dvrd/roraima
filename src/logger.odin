@@ -24,7 +24,7 @@ inform :: proc(message: string, args: ..any) {
 }
 
 debug :: proc(message: string, args: ..any) {
-	fmt.print(DEBUG, "")
+	when ODIN_DEBUG {fmt.print(DEBUG, "")}
 	log.debugf(message, ..args)
 }
 

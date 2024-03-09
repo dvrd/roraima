@@ -25,7 +25,7 @@ create_entity :: proc(registry: ^Registry) -> ^Entity {
 
 	append(&entities_to_add, entity)
 
-	inform(fmt.tprintf("Entity created with id = %v", entity.id))
+	inform(fmt.tprintf("Entity created with [id = %v]", entity.id))
 
 	n_entities += 1
 
@@ -40,26 +40,28 @@ add_component :: proc(entity: ^Entity, component: ^Component) {
 		resize(&component_pools, component_id + 1)
 	}
 
-	if component_pools[component_id] == nil {
+	if component_id >= len(component_pools) {
 		new_component_pool := make(Pool)
 		inject_at(&component_pools, component_id, new_component_pool)
 	}
 
-	component_pool := component_pools[component_id]
-
-	if entity.id >= cap(component_pool) {
-		resize(&component_pool, n_entities + 1)
+	if entity.id >= cap(component_pools[component_id]) {
+		resize(&component_pools[component_id], n_entities + 1)
 	}
 
-	inject_at(&component_pool, entity.id, component)
 
-	entity.owner.component_pools[component_id] = component_pool
+	inject_at(&component_pools[component_id], entity.id, component)
 
-	entity_component_signatures[entity.id] += {component.id}
+
+	if entity.id >= len(entity_component_signatures) {
+		inject_at(&entity_component_signatures, entity.id, Signature{component.id})
+	} else {
+		entity_component_signatures[entity.id] += {component.id}
+	}
 
 	inform(
 		fmt.tprintf(
-			"Component [id = %v] added to entity [id = %v]",
+			"Add: Component [id = %v] to Entity [id = %v]",
 			component.id,
 			entity.id,
 		),
@@ -78,5 +80,5 @@ get_component :: proc(
 	entity: ^Entity,
 	component: ComponentType,
 ) -> ^Component {
-	return entity.owner.component_pools[int(component)][entity.id]
+	return entity.owner.component_pools[component][entity.id]
 }

@@ -9,7 +9,7 @@ Registry :: struct {
 	n_entities:                  int,
 	component_pools:             [dynamic]Pool,
 	entity_component_signatures: [dynamic]Signature,
-	systems:                     map[SystemType]^System,
+	systems:                     ^map[SystemType]^System,
 	entities_to_add:             [dynamic]^Entity,
 	entities_to_kill:            [dynamic]^Entity,
 }
@@ -21,7 +21,11 @@ new_registry :: proc() -> ^Registry {
 		os.exit(1)
 	}
 	reg.n_entities = 0
-	reg.component_pools = make([dynamic]Pool, 100)
+	reg.component_pools = make([dynamic]Pool, 3)
+	reg.entity_component_signatures = make([dynamic]Signature)
+	reg.systems = new(map[SystemType]^System)
+	reg.entities_to_add = make([dynamic]^Entity)
+	reg.entities_to_kill = make([dynamic]^Entity)
 
 	inform("Registry constructor called")
 
@@ -41,7 +45,7 @@ destroy_registry :: proc(registry: ^Registry) {
 	delete(entity_component_signatures)
 	delete(entities_to_add)
 	delete(entities_to_kill)
-	delete(systems)
+	free(systems)
 	free(registry)
 
 	inform("Registry destructor called")
@@ -50,12 +54,10 @@ destroy_registry :: proc(registry: ^Registry) {
 register_entity :: proc(registry: ^Registry, entity: ^Entity) {
 	using registry
 
-	entity_component_signature := entity_component_signatures[entity.id]
-	for key, system in systems {
-		system_component_signature := system.component_signature
-		is_interested :=
-			(entity_component_signature & system_component_signature) ==
-			system_component_signature
+	signature := entity_component_signatures[entity.id]
+	for _, system in systems {
+		sys_signature := system.component_signature
+		is_interested := (signature & sys_signature) == sys_signature
 		if is_interested {
 			add_entity_to_system(system, entity)
 		}
@@ -66,6 +68,14 @@ update_registry :: proc(registry: ^Registry) {
 	using registry
 
 	for entity in entities_to_add {
+		if entity.id == 499 {
+			error("REGISTERED ENTITY 499")
+			error("added component to entity 499")
+			error(
+				"component: %v",
+				entity.owner.component_pools[ComponentType.Sprite][entity.id],
+			)
+		}
 		register_entity(registry, entity)
 	}
 
