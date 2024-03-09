@@ -4,8 +4,9 @@ import "core:fmt"
 import "core:os"
 
 Entity :: struct {
-	id:    int,
-	owner: ^Registry,
+	id:     int,
+	owner:  ^Registry,
+	sprite: Sprite,
 }
 
 create_entity :: proc(registry: ^Registry) -> ^Entity {
@@ -51,6 +52,11 @@ add_component :: proc(entity: ^Entity, component: ^Component) {
 
 
 	inject_at(&component_pools[component_id], entity.id, component)
+
+	#partial switch component.id {
+	case .Sprite:
+		entity.sprite = component.data.(Sprite)
+	}
 
 
 	if entity.id >= len(entity_component_signatures) {

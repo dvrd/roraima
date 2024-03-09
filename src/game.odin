@@ -148,10 +148,10 @@ setup :: proc(game: ^State) {
 				tile,
 				new_sprite(
 					"tilemap-image",
-					cast(i32)tile_size,
-					cast(i32)tile_size,
-					cast(i32)srcRectX,
-					cast(i32)srcRectY,
+					tile_size,
+					tile_size,
+					srcRectX,
+					srcRectY,
 					0,
 				),
 			)
@@ -161,11 +161,11 @@ setup :: proc(game: ^State) {
 	tank := create_entity(registry)
 	truck := create_entity(registry)
 
-	add_component(tank, new_transform({10, 10}, {3, 3}, 0))
+	add_component(tank, new_transform({10, 10}, {1, 1}, 0))
 	add_component(tank, new_rigid_body({100, 0}))
 	add_component(tank, new_sprite("tank-image", 32, 32, 0, 0, 2))
 
-	add_component(truck, new_transform({10, 50}, {3, 3}, 0))
+	add_component(truck, new_transform({10, 10}, {1, 1}, 0))
 	add_component(truck, new_rigid_body({120, 0}))
 	add_component(truck, new_sprite("truck-image", 32, 32, 0, 0, 1))
 

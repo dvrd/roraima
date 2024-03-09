@@ -2,6 +2,7 @@ package roraima
 
 import "core:fmt"
 import "core:os"
+import "core:slice"
 
 Pool :: [dynamic]^Component
 
@@ -67,15 +68,12 @@ register_entity :: proc(registry: ^Registry, entity: ^Entity) {
 update_registry :: proc(registry: ^Registry) {
 	using registry
 
-	for entity in entities_to_add {
-		if entity.id == 499 {
-			error("REGISTERED ENTITY 499")
-			error("added component to entity 499")
-			error(
-				"component: %v",
-				entity.owner.component_pools[ComponentType.Sprite][entity.id],
-			)
-		}
+	sorted_entities := entities_to_add[:]
+	slice.sort_by(sorted_entities, proc(a, b: ^Entity) -> bool {
+		return a.sprite.z_idx < b.sprite.z_idx
+	})
+
+	for entity in sorted_entities {
 		register_entity(registry, entity)
 	}
 
