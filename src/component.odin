@@ -20,10 +20,19 @@ Sprite :: struct {
 	src_rect: SDL.Rect,
 }
 
+Animation :: struct {
+	frames:        i32,
+	current_frame: i32,
+	speed_rate:    i32,
+	is_loop:       bool,
+	start_time:    i32,
+}
+
 ComponentType :: enum {
 	Transform = 0,
 	RigidBody,
 	Sprite,
+	Animation,
 }
 
 Signature :: bit_set[ComponentType]
@@ -34,6 +43,7 @@ Component :: struct {
 		Transform,
 		RigidBody,
 		Sprite,
+		Animation,
 	},
 }
 
@@ -73,6 +83,25 @@ new_sprite :: proc(
 		height,
 		z_idx,
 		SDL.Rect{x, y, width, height},
+	}
+
+	return
+}
+
+new_animation :: proc(
+	frames, speed_rate: i32,
+	is_loop: bool,
+) -> (
+	component: ^Component,
+) {
+	component = new(Component)
+	component.id = .Animation
+	component.data = Animation {
+		frames        = frames,
+		current_frame = 1,
+		speed_rate    = speed_rate,
+		is_loop       = is_loop,
+		start_time    = cast(i32)SDL.GetTicks(),
 	}
 
 	return

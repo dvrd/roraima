@@ -7,6 +7,7 @@ import SDL "vendor:sdl2"
 SystemType :: enum {
 	Movement,
 	Render,
+	Animation,
 }
 
 System :: struct {
@@ -32,6 +33,8 @@ new_system :: proc(type: SystemType) -> ^System {
 		sys.component_signature = {.Transform, .Sprite}
 	case .Movement:
 		sys.component_signature = {.Transform, .RigidBody}
+	case .Animation:
+		sys.component_signature = {.Animation, .Sprite}
 	}
 
 	return sys
@@ -106,6 +109,47 @@ update_render :: proc(
 				nil,
 				.NONE,
 			)
+		}
+	}
+}
+
+update_animation :: proc(system: ^System) {
+	for entity in system.entities {
+		sprite := get_component(entity, .Sprite)
+		animation := get_component(entity, .Animation)
+
+		if animation != nil && sprite != nil {
+			animation_data := animation.data.(Animation)
+			sprite_data := sprite.data.(Sprite)
+
+			current_frame :=
+				(((cast(i32)SDL.GetTicks() - animation_data.start_time) *
+						animation_data.speed_rate) /
+					1000) %
+				animation_data.frames
+
+			animation_data = Animation {
+				frames        = animation_data.frames,
+				current_frame = cast(i32)current_frame,
+				speed_rate    = animation_data.speed_rate,
+				is_loop       = animation_data.is_loop,
+				start_time    = animation_data.start_time,
+			}
+			animation.data = animation_data
+
+			sprite_data = Sprite {
+				id       = sprite_data.id,
+				width    = sprite_data.width,
+				height   = sprite_data.height,
+				z_idx    = sprite_data.z_idx,
+				src_rect = SDL.Rect {
+					sprite_data.width * current_frame,
+					sprite_data.src_rect.y,
+					sprite_data.width,
+					sprite_data.height,
+				},
+			}
+			sprite.data = sprite_data
 		}
 	}
 }

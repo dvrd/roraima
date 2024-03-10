@@ -99,6 +99,7 @@ setup :: proc(game: ^State) {
 
 	add_system(registry, new_system(.Movement))
 	add_system(registry, new_system(.Render))
+	add_system(registry, new_system(.Animation))
 
 	add_texture(
 		asset_store,
@@ -111,6 +112,12 @@ setup :: proc(game: ^State) {
 		renderer,
 		"truck-image",
 		"assets/images/truck-ford-right.png",
+	)
+	add_texture(
+		asset_store,
+		renderer,
+		"chopper-image",
+		"assets/images/chopper.png",
 	)
 	add_texture(
 		asset_store,
@@ -160,14 +167,20 @@ setup :: proc(game: ^State) {
 
 	tank := create_entity(registry)
 	truck := create_entity(registry)
+	chopper := create_entity(registry)
 
 	add_component(tank, new_transform({10, 10}, {1, 1}, 0))
 	add_component(tank, new_rigid_body({100, 0}))
-	add_component(tank, new_sprite("tank-image", 32, 32, 0, 0, 2))
+	add_component(tank, new_sprite("tank-image", 32, 32, 0, 0, 1))
 
-	add_component(truck, new_transform({10, 10}, {1, 1}, 0))
+	add_component(truck, new_transform({10, 50}, {1, 1}, 0))
 	add_component(truck, new_rigid_body({120, 0}))
 	add_component(truck, new_sprite("truck-image", 32, 32, 0, 0, 1))
+
+	add_component(chopper, new_transform({10, 100}, {1, 1}, 0))
+	add_component(chopper, new_rigid_body({100, 0}))
+	add_component(chopper, new_sprite("chopper-image", 32, 32, 0, 0, 100))
+	add_component(chopper, new_animation(2, 10, true))
 
 	clock = {
 		fps        = FPS,
@@ -194,9 +207,12 @@ update :: proc(game: ^State) {
 		debug("FPS: %v", clock.fps)
 	}
 
-	movement_system := get_system(registry, .Movement)
-	update_movement(movement_system, clock.delta)
 	update_registry(registry)
+
+	movement_system := get_system(registry, .Movement)
+	animation_system := get_system(registry, .Animation)
+	update_animation(animation_system)
+	update_movement(movement_system, clock.delta)
 
 	clock.last_frame = SDL.GetTicks()
 }
