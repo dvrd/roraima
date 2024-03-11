@@ -38,7 +38,9 @@ destroy_registry :: proc(registry: ^Registry) {
 
 	for pool in component_pools {
 		for component in pool {
-			free(component)
+			if component != nil {
+				delete_component(component)
+			}
 		}
 		delete(pool)
 	}

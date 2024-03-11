@@ -6,7 +6,7 @@ import "core:os"
 Entity :: struct {
 	id:     int,
 	owner:  ^Registry,
-	sprite: Sprite,
+	sprite: ^Sprite,
 }
 
 create_entity :: proc(registry: ^Registry) -> ^Entity {
@@ -55,9 +55,8 @@ add_component :: proc(entity: ^Entity, component: ^Component) {
 
 	#partial switch component.id {
 	case .Sprite:
-		entity.sprite = component.data.(Sprite)
+		entity.sprite = component.data.(^Sprite)
 	}
-
 
 	if entity.id >= len(entity_component_signatures) {
 		inject_at(&entity_component_signatures, entity.id, Signature{component.id})

@@ -63,22 +63,20 @@ update_movement :: proc(system: ^System, delta: f64) {
 		transform_component := get_component(entity, .Transform)
 		rigid_body_component := get_component(entity, .RigidBody)
 
-		if transform_component != nil && rigid_body_component != nil {
-			transform := transform_component.data.(Transform)
-			rigid_body := rigid_body_component.data.(RigidBody)
+		transform := transform_component.data.(^Transform)
+		rigid_body := rigid_body_component.data.(^RigidBody)
 
-			transform.position.x += rigid_body.velocity.x * delta
-			transform.position.y += rigid_body.velocity.y * delta
+		transform.position.x += rigid_body.velocity.x * delta
+		transform.position.y += rigid_body.velocity.y * delta
 
-			transform_component.data = transform
-			rigid_body_component.data = rigid_body
+		transform_component.data = transform
+		rigid_body_component.data = rigid_body
 
-			debug(
-				"Entity moved to [x = %v, y = %v]",
-				transform.position.x,
-				transform.position.y,
-			)
-		}
+		// debug(
+		// 	"Entity moved to [x = %v, y = %v]",
+		// 	transform.position.x,
+		// 	transform.position.y,
+		// )
 	}
 }
 
@@ -88,28 +86,24 @@ update_render :: proc(
 	asset_store: ^AssetStore,
 ) {
 	for entity in system.entities {
-		transform := get_component(entity, .Transform)
-		sprite := get_component(entity, .Sprite)
-		if transform != nil && sprite != nil {
-			transform := transform.data.(Transform)
-			sprite := sprite.data.(Sprite)
-			dst_rect := SDL.Rect {
-				cast(i32)transform.position.x,
-				cast(i32)transform.position.y,
-				i32(cast(f64)sprite.width * transform.scale.x),
-				i32(cast(f64)sprite.height * transform.scale.y),
-			}
-
-			SDL.RenderCopyEx(
-				renderer,
-				asset_store[sprite.id],
-				&sprite.src_rect,
-				&dst_rect,
-				transform.rotation,
-				nil,
-				.NONE,
-			)
+		transform := get_component(entity, .Transform).data.(^Transform)
+		sprite := get_component(entity, .Sprite).data.(^Sprite)
+		dst_rect := SDL.Rect {
+			cast(i32)transform.position.x,
+			cast(i32)transform.position.y,
+			i32(cast(f64)sprite.width * transform.scale.x),
+			i32(cast(f64)sprite.height * transform.scale.y),
 		}
+
+		SDL.RenderCopyEx(
+			renderer,
+			asset_store[sprite.id],
+			&sprite.src_rect,
+			&dst_rect,
+			transform.rotation,
+			nil,
+			.NONE,
+		)
 	}
 }
 
@@ -118,38 +112,24 @@ update_animation :: proc(system: ^System) {
 		sprite := get_component(entity, .Sprite)
 		animation := get_component(entity, .Animation)
 
-		if animation != nil && sprite != nil {
-			animation_data := animation.data.(Animation)
-			sprite_data := sprite.data.(Sprite)
+		animation_data := animation.data.(^Animation)
+		sprite_data := sprite.data.(^Sprite)
 
-			current_frame :=
-				(((cast(i32)SDL.GetTicks() - animation_data.start_time) *
-						animation_data.speed_rate) /
-					1000) %
-				animation_data.frames
+		current_frame :=
+			(((cast(i32)SDL.GetTicks() - animation_data.start_time) *
+					animation_data.speed_rate) /
+				1000) %
+			animation_data.frames
 
-			animation_data = Animation {
-				frames        = animation_data.frames,
-				current_frame = cast(i32)current_frame,
-				speed_rate    = animation_data.speed_rate,
-				is_loop       = animation_data.is_loop,
-				start_time    = animation_data.start_time,
-			}
-			animation.data = animation_data
+		animation_data.current_frame = cast(i32)current_frame
+		animation.data = animation_data
 
-			sprite_data = Sprite {
-				id       = sprite_data.id,
-				width    = sprite_data.width,
-				height   = sprite_data.height,
-				z_idx    = sprite_data.z_idx,
-				src_rect = SDL.Rect {
-					sprite_data.width * current_frame,
-					sprite_data.src_rect.y,
-					sprite_data.width,
-					sprite_data.height,
-				},
-			}
-			sprite.data = sprite_data
+		sprite_data.src_rect = SDL.Rect {
+			sprite_data.width * current_frame,
+			sprite_data.src_rect.y,
+			sprite_data.width,
+			sprite_data.height,
 		}
+		sprite.data = sprite_data
 	}
 }
