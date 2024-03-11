@@ -18,9 +18,10 @@ public:
       auto &animation = entity.GetComponent<AnimationComponent>();
       auto &sprite = entity.GetComponent<SpriteComponent>();
 
-      animation.currentFrame = ((SDL_GetTicks() - animation.startTime) *
-                                animation.frameSpeedRate / 1000) %
-                               animation.numFrames;
+      animation.currentFrame =
+          (((SDL_GetTicks() - animation.startTime) * animation.frameSpeedRate) /
+           1000) %
+          animation.numFrames;
       sprite.srcRect.x = sprite.width * animation.currentFrame;
     }
   }

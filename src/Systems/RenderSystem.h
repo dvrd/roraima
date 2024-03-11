@@ -48,10 +48,6 @@ public:
       SDL_RenderCopyEx(renderer, assetStore->GetTexture(sprite.assetId),
                        &sprite.srcRect, &dstRect, transform.rotation, NULL,
                        SDL_FLIP_NONE);
-
-      Logger::Log(
-          "Entity moved to [x = " + std::to_string(transform.position.x) +
-          ", y = " + std::to_string(transform.position.y) + "]");
     }
   }
 };
