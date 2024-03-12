@@ -8,6 +8,8 @@ SystemType :: enum {
 	Movement,
 	Render,
 	Animation,
+	Collision,
+	RenderCollider,
 }
 
 System :: struct {
@@ -35,6 +37,10 @@ new_system :: proc(type: SystemType) -> ^System {
 		sys.component_signature = {.Transform, .RigidBody}
 	case .Animation:
 		sys.component_signature = {.Animation, .Sprite}
+	case .Collision:
+		sys.component_signature = {.Transform, .BoxCollider}
+	case .RenderCollider:
+		sys.component_signature = {.Transform, .BoxCollider}
 	}
 
 	return sys
@@ -71,12 +77,6 @@ update_movement :: proc(system: ^System, delta: f64) {
 
 		transform_component.data = transform
 		rigid_body_component.data = rigid_body
-
-		// debug(
-		// 	"Entity moved to [x = %v, y = %v]",
-		// 	transform.position.x,
-		// 	transform.position.y,
-		// )
 	}
 }
 
@@ -109,8 +109,17 @@ update_render :: proc(
 
 update_animation :: proc(system: ^System) {
 	for entity in system.entities {
-		sprite := get_component(entity, .Sprite)
 		animation := get_component(entity, .Animation)
+		sprite := get_component(entity, .Sprite)
+
+		if animation == nil || sprite == nil {
+			error(
+				"missing data in entity %v (animation: %v | sprite: %v)",
+				entity.id,
+				animation,
+				sprite,
+			)
+		}
 
 		animation_data := animation.data.(^Animation)
 		sprite_data := sprite.data.(^Sprite)
@@ -131,5 +140,57 @@ update_animation :: proc(system: ^System) {
 			sprite_data.height,
 		}
 		sprite.data = sprite_data
+	}
+}
+
+check_aabb_collision :: proc(a, b: ^Entity) -> bool {
+	a_transform := get_component(a, .Transform).data.(^Transform)
+	a_collider := get_component(a, .BoxCollider).data.(^BoxCollider)
+
+	b_transform := get_component(b, .Transform).data.(^Transform)
+	b_collider := get_component(b, .BoxCollider).data.(^BoxCollider)
+
+	check_1 :=
+		a_transform.position.x < b_transform.position.x + cast(f64)b_collider.width
+	check_2 :=
+		a_transform.position.x + cast(f64)a_collider.width > b_transform.position.x
+	check_3 :=
+		a_transform.position.y <
+		b_transform.position.y + cast(f64)b_collider.height
+	check_4 :=
+		a_transform.position.y + cast(f64)a_collider.height >
+		b_transform.position.y
+
+	return check_1 && check_2 && check_3 && check_4
+}
+
+update_collision :: proc(system: ^System) {
+	for i := 0; i < len(system.entities); i += 1 {
+		a := system.entities[i]
+
+		for j := i + 1; j < len(system.entities); j += 1 {
+			b := system.entities[j]
+
+			has_collided := check_aabb_collision(a, b)
+
+			if has_collided {
+				inform("Entity %v is colliding with entity %v", a.id, b.id)
+			}
+		}
+	}
+}
+
+update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
+	for entity in system.entities {
+		transform := get_component(entity, .Transform).data.(^Transform)
+		collider := get_component(entity, .BoxCollider).data.(^BoxCollider)
+		collider_rect := SDL.Rect {
+			cast(i32)transform.position.x,
+			cast(i32)transform.position.y,
+			collider.width,
+			collider.height,
+		}
+		SDL.SetRenderDrawColor(renderer, 255, 0, 0, 255)
+		SDL.RenderDrawRect(renderer, &collider_rect)
 	}
 }

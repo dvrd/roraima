@@ -17,6 +17,7 @@ State :: struct {
 	window:        ^SDL.Window,
 	renderer:      ^SDL.Renderer,
 	is_running:    bool,
+	is_debug:      bool,
 	screen:        [2]i32,
 	ms_prev_frame: u32,
 	clock:         struct {
@@ -38,6 +39,7 @@ new_game :: proc() -> ^State {
 	game.registry = new_registry()
 	game.asset_store = new_asset_store()
 	game.is_running = false
+	game.is_debug = false
 
 	return game
 }
@@ -87,6 +89,8 @@ process_input :: proc(game: ^State) {
 			#partial switch event.key.keysym.sym {
 			case .ESCAPE:
 				is_running = false
+			case .d:
+				is_debug = !is_debug
 			}
 		case .QUIT:
 			is_running = false
@@ -100,6 +104,8 @@ setup :: proc(game: ^State) {
 	add_system(registry, new_system(.Movement))
 	add_system(registry, new_system(.Render))
 	add_system(registry, new_system(.Animation))
+	add_system(registry, new_system(.Collision))
+	add_system(registry, new_system(.RenderCollider))
 
 	add_texture(
 		asset_store,
@@ -119,6 +125,7 @@ setup :: proc(game: ^State) {
 		"chopper-image",
 		"assets/images/chopper.png",
 	)
+	add_texture(asset_store, renderer, "radar-image", "assets/images/radar.png")
 	add_texture(
 		asset_store,
 		renderer,
@@ -165,22 +172,28 @@ setup :: proc(game: ^State) {
 		}
 	}
 
-	tank := create_entity(registry)
-	truck := create_entity(registry)
+	radar := create_entity(registry)
+	add_component(radar, new_transform({f64(screen.x - 74), 10}, {1, 1}, 0))
+	add_component(radar, new_sprite("radar-image", 64, 64, 0, 0, 1))
+	add_component(radar, new_animation(8, 5))
+
 	chopper := create_entity(registry)
-
-	add_component(tank, new_transform({10, 10}, {1, 1}, 0))
-	add_component(tank, new_rigid_body({100, 0}))
-	add_component(tank, new_sprite("tank-image", 32, 32, 0, 0, 1))
-
-	add_component(truck, new_transform({10, 50}, {1, 1}, 0))
-	add_component(truck, new_rigid_body({120, 0}))
-	add_component(truck, new_sprite("truck-image", 32, 32, 0, 0, 1))
-
 	add_component(chopper, new_transform({10, 100}, {1, 1}, 0))
 	add_component(chopper, new_rigid_body({100, 0}))
-	add_component(chopper, new_sprite("chopper-image", 32, 32, 0, 0, 100))
-	add_component(chopper, new_animation(2, 10, true))
+	add_component(chopper, new_sprite("chopper-image", 32, 32, 0, 0, 1))
+	add_component(chopper, new_animation(2, 10))
+
+	tank := create_entity(registry)
+	add_component(tank, new_transform({100, 10}, {1, 1}, 0))
+	add_component(tank, new_rigid_body({-10, 0}))
+	add_component(tank, new_sprite("tank-image", 32, 32, 0, 0, 1))
+	add_component(tank, new_box_collider(32, 32))
+
+	truck := create_entity(registry)
+	add_component(truck, new_transform({10, 10}, {1, 1}, 0))
+	add_component(truck, new_rigid_body({10, 0}))
+	add_component(truck, new_sprite("truck-image", 32, 32, 0, 0, 1))
+	add_component(truck, new_box_collider(32, 32))
 
 	clock = {
 		fps        = FPS,
@@ -209,10 +222,12 @@ update :: proc(game: ^State) {
 
 	update_registry(registry)
 
-	movement_system := get_system(registry, .Movement)
 	animation_system := get_system(registry, .Animation)
+	movement_system := get_system(registry, .Movement)
+	collision_system := get_system(registry, .Collision)
 	update_animation(animation_system)
 	update_movement(movement_system, clock.delta)
+	update_collision(collision_system)
 
 	clock.last_frame = SDL.GetTicks()
 }
@@ -225,6 +240,11 @@ render :: proc(game: ^State) {
 
 	render_system := get_system(registry, .Render)
 	update_render(render_system, renderer, asset_store)
+	if is_debug {
+		render_system := get_system(registry, .RenderCollider)
+		update_render_collider(render_system, renderer)
+	}
+
 
 	SDL.RenderPresent(renderer)
 }

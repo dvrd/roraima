@@ -28,25 +28,31 @@ Animation :: struct {
 	start_time:    i32,
 }
 
+BoxCollider :: struct {
+	width:  i32,
+	height: i32,
+	offset: [2]i32,
+}
+
 ComponentType :: enum {
 	Transform = 0,
 	RigidBody,
 	Sprite,
 	Animation,
-}
-
-ComponentData :: union {
-	^Transform,
-	^RigidBody,
-	^Sprite,
-	^Animation,
+	BoxCollider,
 }
 
 Signature :: bit_set[ComponentType]
 
 Component :: struct {
 	id:   ComponentType,
-	data: ComponentData,
+	data: union {
+		^Transform,
+		^RigidBody,
+		^Sprite,
+		^Animation,
+		^BoxCollider,
+	},
 }
 
 delete_component :: proc(component: ^Component) {
@@ -58,6 +64,8 @@ delete_component :: proc(component: ^Component) {
 	case ^Sprite:
 		free(v)
 	case ^Animation:
+		free(v)
+	case ^BoxCollider:
 		free(v)
 	}
 	free(component)
@@ -121,6 +129,25 @@ new_animation :: proc(
 		speed_rate    = speed_rate,
 		is_loop       = is_loop,
 		start_time    = cast(i32)SDL.GetTicks(),
+	}
+
+	return
+}
+
+new_box_collider :: proc(
+	width: i32 = 0,
+	height: i32 = 0,
+	offset: [2]i32 = {0, 0},
+) -> (
+	component: ^Component,
+) {
+	component = new(Component)
+	component.id = .BoxCollider
+	component.data = new(BoxCollider)
+	component.data.(^BoxCollider)^ = BoxCollider {
+		width  = width,
+		height = height,
+		offset = offset,
 	}
 
 	return
