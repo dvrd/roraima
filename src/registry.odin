@@ -93,7 +93,12 @@ add_system :: proc(registry: ^Registry, system: ^System) {
 	systems[system.id] = system
 }
 
-get_system :: proc(registry: ^Registry, id: SystemType) -> ^System {
+get_system :: proc(registry: ^Registry, id: SystemType) -> (system: ^System) {
 	using registry
-	return systems[id]
+	system = systems[id]
+	if system == nil {
+		error("System %v not found", id)
+		os.exit(1)
+	}
+	return
 }

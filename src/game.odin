@@ -182,6 +182,7 @@ setup :: proc(game: ^State) {
 	add_component(chopper, new_rigid_body({100, 0}))
 	add_component(chopper, new_sprite("chopper-image", 32, 32, 0, 0, 1))
 	add_component(chopper, new_animation(2, 10))
+	add_component(chopper, new_box_collider(32, 32))
 
 	tank := create_entity(registry)
 	add_component(tank, new_transform({100, 10}, {1, 1}, 0))
@@ -225,6 +226,7 @@ update :: proc(game: ^State) {
 	animation_system := get_system(registry, .Animation)
 	movement_system := get_system(registry, .Movement)
 	collision_system := get_system(registry, .Collision)
+
 	update_animation(animation_system)
 	update_movement(movement_system, clock.delta)
 	update_collision(collision_system)
@@ -239,6 +241,7 @@ render :: proc(game: ^State) {
 	SDL.RenderClear(renderer)
 
 	render_system := get_system(registry, .Render)
+
 	update_render(render_system, renderer, asset_store)
 	if is_debug {
 		render_system := get_system(registry, .RenderCollider)

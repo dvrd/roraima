@@ -66,17 +66,9 @@ remove_entity_from_system :: proc(system: ^System, entity: ^Entity) {
 
 update_movement :: proc(system: ^System, delta: f64) {
 	for entity in system.entities {
-		transform_component := get_component(entity, .Transform)
-		rigid_body_component := get_component(entity, .RigidBody)
-
-		transform := transform_component.data.(^Transform)
-		rigid_body := rigid_body_component.data.(^RigidBody)
-
-		transform.position.x += rigid_body.velocity.x * delta
-		transform.position.y += rigid_body.velocity.y * delta
-
-		transform_component.data = transform
-		rigid_body_component.data = rigid_body
+		transform := get_component(entity, .Transform).data.(^Transform)
+		rigid_body := get_component(entity, .RigidBody).data.(^RigidBody)
+		transform.position += rigid_body.velocity * delta
 	}
 }
 
@@ -88,6 +80,16 @@ update_render :: proc(
 	for entity in system.entities {
 		transform := get_component(entity, .Transform).data.(^Transform)
 		sprite := get_component(entity, .Sprite).data.(^Sprite)
+
+		if transform == nil || sprite == nil {
+			error(
+				"missing data in entity %v (transform: %v | sprite: %v)",
+				entity.id,
+				transform,
+				sprite,
+			)
+		}
+
 		dst_rect := SDL.Rect {
 			cast(i32)transform.position.x,
 			cast(i32)transform.position.y,
@@ -131,7 +133,6 @@ update_animation :: proc(system: ^System) {
 			animation_data.frames
 
 		animation_data.current_frame = cast(i32)current_frame
-		animation.data = animation_data
 
 		sprite_data.src_rect = SDL.Rect {
 			sprite_data.width * current_frame,
@@ -139,17 +140,13 @@ update_animation :: proc(system: ^System) {
 			sprite_data.width,
 			sprite_data.height,
 		}
-		sprite.data = sprite_data
 	}
 }
 
-check_aabb_collision :: proc(a, b: ^Entity) -> bool {
-	a_transform := get_component(a, .Transform).data.(^Transform)
-	a_collider := get_component(a, .BoxCollider).data.(^BoxCollider)
-
-	b_transform := get_component(b, .Transform).data.(^Transform)
-	b_collider := get_component(b, .BoxCollider).data.(^BoxCollider)
-
+check_aabb_collision :: proc(
+	a_transform, b_transform: ^Transform,
+	a_collider, b_collider: ^BoxCollider,
+) -> bool {
 	check_1 :=
 		a_transform.position.x < b_transform.position.x + cast(f64)b_collider.width
 	check_2 :=
@@ -168,13 +165,32 @@ update_collision :: proc(system: ^System) {
 	for i := 0; i < len(system.entities); i += 1 {
 		a := system.entities[i]
 
+		a_transform := get_component(a, .Transform).data.(^Transform)
+		a_collider := get_component(a, .BoxCollider).data.(^BoxCollider)
 		for j := i + 1; j < len(system.entities); j += 1 {
 			b := system.entities[j]
 
-			has_collided := check_aabb_collision(a, b)
+			if a.id == b.id {
+				continue
+			}
+
+			b_transform := get_component(b, .Transform).data.(^Transform)
+			b_collider := get_component(b, .BoxCollider).data.(^BoxCollider)
+
+			has_collided := check_aabb_collision(
+				a_transform,
+				b_transform,
+				a_collider,
+				b_collider,
+			)
 
 			if has_collided {
+				a_collider.color = {255, 255, 0, 255}
+				b_collider.color = {255, 255, 0, 255}
 				inform("Entity %v is colliding with entity %v", a.id, b.id)
+			} else {
+				a_collider.color = {255, 0, 0, 255}
+				b_collider.color = {255, 0, 0, 255}
 			}
 		}
 	}
@@ -190,7 +206,13 @@ update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
 			collider.width,
 			collider.height,
 		}
-		SDL.SetRenderDrawColor(renderer, 255, 0, 0, 255)
+		SDL.SetRenderDrawColor(
+			renderer,
+			collider.color.r,
+			collider.color.g,
+			collider.color.b,
+			collider.color.a,
+		)
 		SDL.RenderDrawRect(renderer, &collider_rect)
 	}
 }
