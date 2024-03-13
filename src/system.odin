@@ -22,7 +22,7 @@ new_system :: proc(type: SystemType) -> ^System {
 	sys, err := new(System)
 
 	if err != nil {
-		error("could not allocate System struct")
+		error("%vnew_system:%v could not allocate System struct", PURPLE, END)
 		os.exit(1)
 	}
 
@@ -83,7 +83,9 @@ update_render :: proc(
 
 		if transform == nil || sprite == nil {
 			error(
-				"missing data in entity %v (transform: %v | sprite: %v)",
+				"%vupdate_render:%missing data in entity %v (transform: %v | sprite: %v)",
+				PURPLE,
+				END,
 				entity.id,
 				transform,
 				sprite,
@@ -116,7 +118,9 @@ update_animation :: proc(system: ^System) {
 
 		if animation == nil || sprite == nil {
 			error(
-				"missing data in entity %v (animation: %v | sprite: %v)",
+				"%vupdate_animation:%v missing data in entity %v (animation: %v | sprite: %v)",
+				PURPLE,
+				END,
 				entity.id,
 				animation,
 				sprite,
@@ -187,7 +191,13 @@ update_collision :: proc(system: ^System) {
 			if has_collided {
 				a_collider.color = {255, 255, 0, 255}
 				b_collider.color = {255, 255, 0, 255}
-				inform("Entity %v is colliding with entity %v", a.id, b.id)
+				inform(
+					"%vupdate_collision:%v %v is colliding with %v",
+					PURPLE,
+					END,
+					a.id,
+					b.id,
+				)
 			} else {
 				a_collider.color = {255, 0, 0, 255}
 				b_collider.color = {255, 0, 0, 255}

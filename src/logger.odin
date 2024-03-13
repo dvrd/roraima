@@ -6,6 +6,11 @@ import "core:os"
 
 DEBUG_FILE :: "debug.log"
 
+BLUE :: "\x1B[34m"
+RED :: "\x1B[91m"
+PURPLE :: "\x1B[35m"
+END :: "\x1b[0m"
+
 ERROR :: "\x1B[91m\x1b[0m"
 SUCCESS :: "\x1B[32m\x1b[0m"
 WARNING :: "\x1B[33m\x1b[0m"

@@ -33,7 +33,11 @@ State :: struct {
 }
 
 new_game :: proc() -> ^State {
-	inform("Initializing game engine 'Roraima v1.0.0'")
+	inform(
+		"%vnew_game:%v Initializing game engine 'Roraima v1.0.0'",
+		PURPLE,
+		END,
+	)
 
 	game := new(State)
 	game.registry = new_registry()
@@ -48,7 +52,7 @@ initialize :: proc(game: ^State) {
 	using game
 
 	if (SDL.Init({.AUDIO, .VIDEO, .EVENTS}) != 0) {
-		error("could not initialize SDL.")
+		error("%vinitialize:%v could not initialize SDL.", PURPLE, END)
 		os.exit(1)
 	}
 	displayMode: SDL.DisplayMode
@@ -64,13 +68,13 @@ initialize :: proc(game: ^State) {
 		{.BORDERLESS},
 	)
 	if window == nil {
-		error("window bad")
+		error("%vinitialize:%v window bad", PURPLE, END)
 		os.exit(1)
 	}
 
 	renderer = SDL.CreateRenderer(window, -1, {})
 	if renderer == nil {
-		error("renderer bad")
+		error("%vinitialize:%v renderer bad", PURPLE, END)
 		os.exit(1)
 	}
 
@@ -271,5 +275,5 @@ destroy_game :: proc(game: ^State) {
 	SDL.DestroyRenderer(renderer)
 	SDL.Quit()
 
-	inform("Game stopped. Have a nice day!")
+	inform("%vdestroy_game:%v Game stopped. Have a nice day!", PURPLE, END)
 }
