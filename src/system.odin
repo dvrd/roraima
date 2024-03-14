@@ -56,9 +56,9 @@ add_entity_to_system :: proc(system: ^System, entity: ^Entity) {
 }
 
 remove_entity_from_system :: proc(system: ^System, entity: ^Entity) {
-	search: for e in system.entities {
-		if e.id == entity.id {
-			ordered_remove(&system.entities, e.id)
+	search: for i := 0; i < len(system.entities); i += 1 {
+		if system.entities[i].id == entity.id {
+			ordered_remove(&system.entities, i)
 			break search
 		}
 	}
@@ -151,16 +151,15 @@ check_aabb_collision :: proc(
 	a_transform, b_transform: ^Transform,
 	a_collider, b_collider: ^BoxCollider,
 ) -> bool {
-	check_1 :=
-		a_transform.position.x < b_transform.position.x + cast(f64)b_collider.width
-	check_2 :=
-		a_transform.position.x + cast(f64)a_collider.width > b_transform.position.x
-	check_3 :=
-		a_transform.position.y <
-		b_transform.position.y + cast(f64)b_collider.height
-	check_4 :=
-		a_transform.position.y + cast(f64)a_collider.height >
-		b_transform.position.y
+	a_x := a_transform.position.x + a_collider.offset.x
+	a_y := a_transform.position.y + a_collider.offset.y
+	b_x := b_transform.position.x + b_collider.offset.x
+	b_y := b_transform.position.y + b_collider.offset.y
+
+	check_1 := a_x < b_x + cast(f64)b_collider.width
+	check_2 := b_x < a_x + cast(f64)a_collider.width
+	check_3 := a_y < b_y + cast(f64)b_collider.height
+	check_4 := b_y < a_y + cast(f64)a_collider.height
 
 	return check_1 && check_2 && check_3 && check_4
 }
@@ -198,6 +197,8 @@ update_collision :: proc(system: ^System) {
 					a.id,
 					b.id,
 				)
+				kill_entity(a)
+				kill_entity(b)
 			} else {
 				a_collider.color = {255, 0, 0, 255}
 				b_collider.color = {255, 0, 0, 255}

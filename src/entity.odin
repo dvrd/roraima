@@ -43,6 +43,12 @@ create_entity :: proc(registry: ^Registry) -> ^Entity {
 
 kill_entity :: proc(entity: ^Entity) {
 	append(&entity.owner.entities_to_kill, entity)
+	inform(
+		"%vkill_entity:%v Entity [id = %v] marked for deletion",
+		PURPLE,
+		END,
+		entity.id,
+	)
 }
 
 add_component :: proc(entity: ^Entity, component: ^Component) {

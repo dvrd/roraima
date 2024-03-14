@@ -31,7 +31,7 @@ Animation :: struct {
 BoxCollider :: struct {
 	width:  i32,
 	height: i32,
-	offset: [2]i32,
+	offset: Vec2,
 	color:  [4]u8,
 }
 
@@ -138,7 +138,7 @@ new_animation :: proc(
 new_box_collider :: proc(
 	width: i32 = 0,
 	height: i32 = 0,
-	offset: [2]i32 = {0, 0},
+	offset: Vec2 = {0, 0},
 	color: [4]u8 = {255, 0, 0, 255},
 ) -> (
 	component: ^Component,
