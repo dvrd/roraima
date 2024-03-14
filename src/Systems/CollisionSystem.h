@@ -28,13 +28,17 @@ public:
           continue;
         }
 
-        auto &bTransform = b.GetComponent<TransformComponent>();
-        auto &bCollider = b.GetComponent<BoxColliderComponent>();
+        auto bTransform = b.GetComponent<TransformComponent>();
+        auto bCollider = b.GetComponent<BoxColliderComponent>();
 
         bool collisionHappened = CheckAABBCollision(
-            aTransform.position.x, aTransform.position.y, aCollider.width,
-            aCollider.height, bTransform.position.x, bTransform.position.y,
-            bCollider.width, bCollider.height);
+            aTransform.position.x + aCollider.offset.x,
+            aTransform.position.y + aCollider.offset.y, aCollider.width,
+            aCollider.height, bTransform.position.x + bCollider.offset.x,
+            bTransform.position.y + bCollider.offset.y, bCollider.width,
+            bCollider.height);
+
+        Logger::Log("Collision happened: " + std::to_string(collisionHappened));
 
         if (collisionHappened) {
           Logger::Log("Entity " + std::to_string(a.GetId()) +
@@ -48,7 +52,7 @@ public:
 
   bool CheckAABBCollision(double aX, double aY, double aW, double aH, double bX,
                           double bY, double bW, double bH) {
-    return (aX < bY + bW && aX + aW > bX && aY < bY + bH && aY + aH > bY);
+    return (aX < bX + bW && bX < aX + aW && aY < bY + bH && bY < aY + aH);
   }
 };
 
