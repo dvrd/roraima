@@ -128,7 +128,7 @@ void Game::LoadLevel(int level) {
   radar.AddComponent<AnimationComponent>(8, 5);
 
   Entity tank = registry->CreateEntity();
-  tank.AddComponent<TransformComponent>(glm::vec2(100, 10), glm::vec2(1, 1), 0);
+  tank.AddComponent<TransformComponent>(glm::vec2(200, 10), glm::vec2(1, 1), 0);
   tank.AddComponent<RigidBodyComponent>(glm::vec2(-30, 0));
   tank.AddComponent<SpriteComponent>("tank-image", 32, 32, 0, 0, 100);
   tank.AddComponent<BoxColliderComponent>(32, 32);

@@ -4,6 +4,7 @@
 
 #include <Logger/Logger.h>
 #include <bitset>
+#include <deque>
 #include <set>
 #include <typeindex>
 #include <unordered_map>
@@ -36,7 +37,9 @@ private:
 public:
   Entity(int id) : id(id){};
   Entity(const Entity &entity) = default;
+  void Kill();
   int GetId() const;
+
   Entity &operator=(const Entity &other) = default;
   bool operator==(const Entity &other) const { return id == other.id; }
   bool operator!=(const Entity &other) const { return id != other.id; }
@@ -127,6 +130,9 @@ private:
   std::set<Entity> entitiesToBeAdded;
   std::set<Entity> entitiesToBeKilled;
 
+  // INFO: List of free entity ids that were previously removed
+  std::deque<int> freeIds;
+
 public:
   Registry() { Logger::Log("Registry constructor called!"); }
   ~Registry() { Logger::Log("Registry destructor called!"); }
@@ -134,7 +140,7 @@ public:
   void Update();
 
   Entity CreateEntity();
-  void AddEntityToSystem(Entity entity);
+  void KillEntity(Entity entity);
 
   template <typename TComponent, typename... TArgs>
   void AddComponent(Entity entity, TArgs &&...args);
@@ -147,6 +153,9 @@ public:
   template <typename TSystem> void RemoveSystem();
   template <typename TSystem> bool HasSystem() const;
   template <typename TSystem> TSystem &GetSystem() const;
+
+  void AddEntityToSystems(Entity entity);
+  void RemoveEntityFromSystems(Entity entity);
 };
 
 template <typename TSystem, typename... TArgs>
