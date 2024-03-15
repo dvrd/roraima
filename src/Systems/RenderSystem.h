@@ -1,10 +1,10 @@
 #ifndef RENDERSYSTEM_H
 #define RENDERSYSTEM_H
 
-#include <AssetStore/AssetStore.h>
-#include <Components/SpriteComponent.h>
-#include <Components/TransformComponent.h>
-#include <ECS/ECS.h>
+#include "AssetStore/AssetStore.h"
+#include "Components/SpriteComponent.h"
+#include "Components/TransformComponent.h"
+#include "ECS/ECS.h"
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
 

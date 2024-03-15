@@ -1,16 +1,16 @@
 #include "Game.h"
-#include <Components/AnimationComponent.h>
-#include <Components/BoxColliderComponent.h>
-#include <Components/RigidBodyComponent.h>
-#include <Components/SpriteComponent.h>
-#include <Components/TransformComponent.h>
-#include <Logger/Logger.h>
+#include "Components/AnimationComponent.h"
+#include "Components/BoxColliderComponent.h"
+#include "Components/RigidBodyComponent.h"
+#include "Components/SpriteComponent.h"
+#include "Components/TransformComponent.h"
+#include "Logger/Logger.h"
+#include "Systems/AnimationSystem.h"
+#include "Systems/CollisionSystem.h"
+#include "Systems/MovementSystem.h"
+#include "Systems/RenderColliderSystem.h"
+#include "Systems/RenderSystem.h"
 #include <SDL2/SDL_image.h>
-#include <Systems/AnimationSystem.h>
-#include <Systems/CollisionSystem.h>
-#include <Systems/MovementSystem.h>
-#include <Systems/RenderColliderSystem.h>
-#include <Systems/RenderSystem.h>
 #include <fstream>
 #include <glm/glm.hpp>
 
