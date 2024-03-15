@@ -2,7 +2,6 @@
 #define SPRITECOMPONENT_H
 
 #include <SDL2/SDL.h>
-#include <glm/glm.hpp>
 #include <string>
 
 struct SpriteComponent {
@@ -13,7 +12,7 @@ struct SpriteComponent {
   SDL_Rect srcRect;
 
   SpriteComponent(std::string assetId = "", int width = 0, int height = 0,
-                  int srcRectX = 0, int srcRectY = 0, int zIndex = 0) {
+                  int zIndex = 0, int srcRectX = 0, int srcRectY = 0) {
     this->assetId = assetId;
     this->width = width;
     this->height = height;

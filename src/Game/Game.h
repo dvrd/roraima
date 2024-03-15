@@ -16,6 +16,7 @@ private:
   int millisecsPreviousFrame = 0;
   SDL_Window *window;
   SDL_Renderer *renderer;
+
   std::unique_ptr<Registry> registry;
   std::unique_ptr<AssetStore> assetStore;
   std::unique_ptr<EventBus> eventBus;
@@ -25,8 +26,8 @@ public:
   ~Game();
   void Initialize();
   void Run();
-  void LoadLevel(int level);
   void Setup();
+  void LoadLevel(int level);
   void ProcessInput();
   void Update();
   void Render();

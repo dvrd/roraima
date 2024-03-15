@@ -1,10 +1,9 @@
-#ifndef MOVEMNTSYSTEM_H
-#define MOVEMNTSYSTEM_H
+#ifndef MOVEMENTSYSTEM_H
+#define MOVEMENTSYSTEM_H
 
 #include "Components/RigidBodyComponent.h"
 #include "Components/TransformComponent.h"
 #include "ECS/ECS.h"
-#include <glm/glm.hpp>
 
 class MovementSystem : public System {
 public:
@@ -14,16 +13,14 @@ public:
   }
 
   void Update(double deltaTime) {
+    // Loop all entities that the system is interested in
     for (auto entity : GetSystemEntities()) {
+      // Update entity position based on its velocity
       auto &transform = entity.GetComponent<TransformComponent>();
       const auto rigidbody = entity.GetComponent<RigidBodyComponent>();
 
       transform.position.x += rigidbody.velocity.x * deltaTime;
       transform.position.y += rigidbody.velocity.y * deltaTime;
-
-      // Logger::Log(
-      //     "Entity moved to [x = " + std::to_string(transform.position.x) +
-      //     ", y = " + std::to_string(transform.position.y) + "]");
     }
   }
 };
