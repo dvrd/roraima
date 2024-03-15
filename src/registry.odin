@@ -129,7 +129,7 @@ get_system :: proc(registry: ^Registry, id: SystemType) -> (system: ^System) {
 	using registry
 	system = systems[id]
 	if system == nil {
-		error("%vget_system:%v system %v not found", PURPLE, END, id)
+		error("%vget_system:%v .%v not found", PURPLE, END, id)
 		os.exit(1)
 	}
 	return

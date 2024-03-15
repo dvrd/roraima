@@ -10,6 +10,7 @@ SystemType :: enum {
 	Animation,
 	Collision,
 	RenderCollider,
+	Damage,
 }
 
 System :: struct {
@@ -41,6 +42,8 @@ new_system :: proc(type: SystemType) -> ^System {
 		sys.component_signature = {.Transform, .BoxCollider}
 	case .RenderCollider:
 		sys.component_signature = {.Transform, .BoxCollider}
+	case .Damage:
+		sys.component_signature = {.BoxCollider}
 	}
 
 	return sys
@@ -164,7 +167,7 @@ check_aabb_collision :: proc(
 	return check_1 && check_2 && check_3 && check_4
 }
 
-update_collision :: proc(system: ^System) {
+update_collision :: proc(system: ^System, bus: ^EventBus) {
 	for i := 0; i < len(system.entities); i += 1 {
 		a := system.entities[i]
 
@@ -197,8 +200,11 @@ update_collision :: proc(system: ^System) {
 					a.id,
 					b.id,
 				)
-				kill_entity(a)
-				kill_entity(b)
+
+				emit_event(bus, Event{
+					kind=.Collision,
+					data=CollisionEvent{a, b}
+				})
 			} else {
 				a_collider.color = {255, 0, 0, 255}
 				b_collider.color = {255, 0, 0, 255}
@@ -226,4 +232,27 @@ update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
 		)
 		SDL.RenderDrawRect(renderer, &collider_rect)
 	}
+}
+
+damage_on_collision :: proc(data: EventData) {
+	inform(
+		"%vdamage_on_collision:%v %v is colliding with %v",
+		PURPLE,
+		END,
+		data.(CollisionEvent).a.id,
+		data.(CollisionEvent).b.id,
+	)
+	kill_entity(data.(CollisionEvent).a)
+	kill_entity(data.(CollisionEvent).b)
+}
+
+subscribe_to_collision_events :: proc(bus: ^EventBus, system: ^System) {
+	#partial switch system.id {
+	case .Damage:
+		subscribe_to_event(bus, .Collision, damage_on_collision)
+	}
+}
+
+subscribe_to_events :: proc {
+	subscribe_to_collision_events,
 }

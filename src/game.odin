@@ -30,6 +30,7 @@ State :: struct {
 	},
 	registry:      ^Registry,
 	asset_store:   ^AssetStore,
+	event_bus:     ^EventBus,
 }
 
 new_game :: proc() -> ^State {
@@ -40,10 +41,11 @@ new_game :: proc() -> ^State {
 	)
 
 	game := new(State)
-	game.registry = new_registry()
-	game.asset_store = new_asset_store()
 	game.is_running = false
 	game.is_debug = false
+	game.registry = new_registry()
+	game.asset_store = new_asset_store()
+	game.event_bus = new_event_bus()
 
 	return game
 }
@@ -110,6 +112,7 @@ setup :: proc(game: ^State) {
 	add_system(registry, new_system(.Animation))
 	add_system(registry, new_system(.Collision))
 	add_system(registry, new_system(.RenderCollider))
+	add_system(registry, new_system(.Damage))
 
 	add_texture(
 		asset_store,
@@ -225,6 +228,9 @@ update :: proc(game: ^State) {
 		debug("FPS: %v", clock.fps)
 	}
 
+	damage_system := get_system(registry, .Damage)
+	subscribe_to_events(event_bus, damage_system)
+
 	update_registry(registry)
 
 	animation_system := get_system(registry, .Animation)
@@ -233,7 +239,7 @@ update :: proc(game: ^State) {
 
 	update_animation(animation_system)
 	update_movement(movement_system, clock.delta)
-	update_collision(collision_system)
+	update_collision(collision_system, event_bus)
 
 	clock.last_frame = SDL.GetTicks()
 }
