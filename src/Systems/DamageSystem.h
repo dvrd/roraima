@@ -12,10 +12,10 @@ public:
 
   void SubscribeToEvents(std::unique_ptr<EventBus> &eventBus) {
     eventBus->SubscribeToEvent<CollisionEvent>(this,
-                                               &DamageSystem::onCollision);
+                                               &DamageSystem::OnCollision);
   }
 
-  void onCollision(CollisionEvent &event) {
+  void OnCollision(CollisionEvent &event) {
     Logger::Log(
         "The Damage system received an event collision between entities " +
         std::to_string(event.a.GetId()) + " and " +
