@@ -54,10 +54,15 @@ Sprite :: struct {
 	width:    i32,
 	height:   i32,
 	z_idx:    i32,
+	is_fixed: bool,
 	src_rect: SDL.Rect,
 }
 
-new_sprite :: proc(id: string, width, height, x, y, z_idx: i32) -> ^Component {
+new_sprite :: proc(
+	id: string,
+	width, height, x, y, z_idx: i32,
+	is_fixed := false,
+) -> ^Component {
 	component, err := new(Component)
 	if err != nil {
 		error("new_sprite: failed to create new Sprite component")
@@ -74,6 +79,7 @@ new_sprite :: proc(id: string, width, height, x, y, z_idx: i32) -> ^Component {
 		width,
 		height,
 		z_idx,
+		is_fixed,
 		SDL.Rect{x, y, width, height},
 	}
 	return component

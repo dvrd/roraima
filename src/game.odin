@@ -17,12 +17,9 @@ State :: struct {
 	window:        ^SDL.Window,
 	renderer:      ^SDL.Renderer,
 	camera:        SDL.Rect,
+	level_map:     SDL.Rect,
 	is_running:    bool,
 	is_debug:      bool,
-	screen:        struct {
-		w: i32,
-		h: i32,
-	},
 	ms_prev_frame: u32,
 	clock:         struct {
 		delta:       f64,
@@ -57,39 +54,38 @@ new_game :: proc() -> ^State {
 initialize :: proc(game: ^State) {
 	using game
 
-	if (SDL.Init({.AUDIO, .VIDEO, .EVENTS}) != 0) {
+	if (SDL.Init(SDL.INIT_EVERYTHING) != 0) {
 		error("%vinitialize:%v could not initialize SDL.", PURPLE, END)
 		os.exit(1)
 	}
 	displayMode: SDL.DisplayMode
 	SDL.GetCurrentDisplayMode(0, &displayMode)
 
-	screen = {displayMode.w, displayMode.h}
+	camera = {
+		x = 0,
+		y = 0,
+		w = displayMode.w,
+		h = displayMode.h,
+	}
+
 	window = SDL.CreateWindow(
 		"Roraima v1.0.0",
 		SDL.WINDOWPOS_CENTERED,
 		SDL.WINDOWPOS_CENTERED,
-		screen.w,
-		screen.h,
-		{.BORDERLESS},
+		camera.w,
+		camera.h,
+		{.BORDERLESS, .FULLSCREEN},
 	)
 	if window == nil {
 		error("%vinitialize:%v window bad", PURPLE, END)
 		os.exit(1)
 	}
 
-	renderer = SDL.CreateRenderer(window, -1, {})
+	renderer = SDL.CreateRenderer(window, -1, {.ACCELERATED, .PRESENTVSYNC})
 	if renderer == nil {
 		error("%vinitialize:%v renderer bad", PURPLE, END)
 		os.exit(1)
 	}
-
-	SDL.SetWindowFullscreen(window, {.FULLSCREEN})
-
-	camera.x = 0
-	camera.y = 0
-	camera.w = screen.w
-	camera.h = screen.h
 
 	is_running = true
 }
@@ -129,7 +125,7 @@ setup :: proc(game: ^State) {
 	add_system(registry, new_system(.RenderCollider))
 	add_system(registry, new_system(.Damage))
 	add_system(registry, new_system(.KeyboardControl))
-	add_system(registry, new_system(.CameraFollow))
+	add_system(registry, new_system(.CameraMovement))
 
 	add_texture(
 		asset_store,
@@ -157,13 +153,14 @@ setup :: proc(game: ^State) {
 		"assets/tilemaps/jungle.png",
 	)
 
-	tile_size: i32 = 32
-	tile_scale := 2.25
-	map_n_cols := 25
+	tile_size: int = 32
+	tile_scale := 2.
+	map_n_cols := 29
 	map_n_rows := 20
 	next := 0
 	ch: byte
-	data, ok := os.read_entire_file("assets/tilemaps/jungle.map");if !ok {
+	data, ok := os.read_entire_file("assets/tilemaps/jungle.map")
+	if !ok {
 		error("could not open tilemap file.")
 		os.exit(1)
 	}
@@ -172,10 +169,10 @@ setup :: proc(game: ^State) {
 		for x := 0; x < map_n_cols; x += 1 {
 			ch = data[next]
 			next += 1
-			srcRectY := i32(ch - '0') * tile_size
+			srcRectY := int(ch - '0') * tile_size
 			ch = data[next]
 			next += 2
-			srcRectX := i32(ch - '0') * tile_size
+			srcRectX := int(ch - '0') * tile_size
 			tile := create_entity(registry)
 			posX := cast(f64)x * cast(f64)tile_size * tile_scale
 			posY := cast(f64)y * cast(f64)tile_size * tile_scale
@@ -186,30 +183,36 @@ setup :: proc(game: ^State) {
 				tile,
 				new_sprite(
 					"tilemap-image",
-					tile_size,
-					tile_size,
-					srcRectX,
-					srcRectY,
+					cast(i32)tile_size,
+					cast(i32)tile_size,
+					cast(i32)srcRectX,
+					cast(i32)srcRectY,
 					0,
 				),
 			)
 		}
 	}
+	level_map = {
+		x = 0,
+		y = 0,
+		w = i32(map_n_cols * tile_size * cast(int)tile_scale),
+		h = i32(map_n_rows * tile_size * cast(int)tile_scale),
+	}
 
 	radar := create_entity(registry)
-	add_component(radar, new_transform({f64(screen.w - 74), 10}, {1, 1}, 0))
-	add_component(radar, new_sprite("radar-image", 64, 64, 0, 0, 1))
+	add_component(radar, new_transform({f64(camera.w - 74), 10}, {1, 1}, 0))
+	add_component(radar, new_sprite("radar-image", 64, 64, 0, 0, 1, true))
 	add_component(radar, new_animation(8, 5))
 
 	chopper := create_entity(registry)
-	add_component(chopper, new_transform({10, 100}, {2, 2}, 0))
+	add_component(chopper, new_transform({100, 100}, {1, 1}, 0))
 	add_component(chopper, new_rigid_body({0, 0}))
 	add_component(chopper, new_sprite("chopper-image", 32, 32, 0, 32, 1))
 	add_component(chopper, new_animation(2, 10))
 	add_component(chopper, new_box_collider(32, 32))
 	add_component(
 		chopper,
-		new_keyboard_controller({0, -100}, {100, 0}, {0, 100}, {-100, 0}),
+		new_keyboard_controller({0, -200}, {200, 0}, {0, 200}, {-200, 0}),
 	)
 	add_component(chopper, new_camera_follow())
 
@@ -259,12 +262,12 @@ update :: proc(game: ^State) {
 	animation_system := get_system(registry, .Animation)
 	movement_system := get_system(registry, .Movement)
 	collision_system := get_system(registry, .Collision)
-	camera_follow_system := get_system(registry, .CameraFollow)
+	camera_movement_system := get_system(registry, .CameraMovement)
 
 	update_animation(animation_system)
 	update_movement(movement_system, clock.delta)
 	update_collision(collision_system, event_bus)
-	update_camera_follow(camera_follow_system, &camera)
+	update_camera_movement(camera_movement_system, &camera, &level_map)
 
 	clock.last_frame = SDL.GetTicks()
 }
@@ -277,12 +280,11 @@ render :: proc(game: ^State) {
 
 	render_system := get_system(registry, .Render)
 
-	update_render(render_system, renderer, asset_store)
+	update_render(render_system, renderer, asset_store, &camera)
 	if is_debug {
 		render_system := get_system(registry, .RenderCollider)
-		update_render_collider(render_system, renderer)
+		update_render_collider(render_system, renderer, &camera)
 	}
-
 
 	SDL.RenderPresent(renderer)
 }

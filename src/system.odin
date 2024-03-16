@@ -12,7 +12,7 @@ SystemType :: enum {
 	RenderCollider,
 	Damage,
 	KeyboardControl,
-	CameraFollow,
+	CameraMovement,
 }
 
 System :: struct {
@@ -48,7 +48,7 @@ new_system :: proc(type: SystemType) -> ^System {
 		sys.component_signature = {.BoxCollider}
 	case .KeyboardControl:
 		sys.component_signature = {.KeyboardController, .Sprite, .RigidBody}
-	case .CameraFollow:
+	case .CameraMovement:
 		sys.component_signature = {.CameraFollow, .Transform}
 	}
 
@@ -85,14 +85,15 @@ update_render :: proc(
 	system: ^System,
 	renderer: ^SDL.Renderer,
 	asset_store: ^AssetStore,
+	camera: ^SDL.Rect,
 ) {
 	for entity in system.entities {
 		transform := get_transform(entity)
 		sprite := get_sprite(entity)
 
 		dst_rect := SDL.Rect {
-			cast(i32)transform.position.x,
-			cast(i32)transform.position.y,
+			i32(transform.position.x - f64(sprite.is_fixed ? 0 : camera.x)),
+			i32(transform.position.y - f64(sprite.is_fixed ? 0 : camera.y)),
 			i32(cast(f64)sprite.width * transform.scale.x),
 			i32(cast(f64)sprite.height * transform.scale.y),
 		}
@@ -195,15 +196,19 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 	}
 }
 
-update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
+update_render_collider :: proc(
+	system: ^System,
+	renderer: ^SDL.Renderer,
+	camera: ^SDL.Rect,
+) {
 	for entity in system.entities {
 		transform := get_transform(entity)
 		collider := get_box_collider(entity)
 		collider_rect := SDL.Rect {
-			cast(i32)transform.position.x,
-			cast(i32)transform.position.y,
+			cast(i32)transform.position.x - camera.x,
+			cast(i32)transform.position.y - camera.y,
 			collider.width * cast(i32)transform.scale.x,
-			collider.height * cast(i32)transform.scale.y
+			collider.height * cast(i32)transform.scale.y,
 		}
 		SDL.SetRenderDrawColor(
 			renderer,
@@ -216,11 +221,28 @@ update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
 	}
 }
 
-update_camera_follow :: proc(system: ^System, camera: ^SDL.Rect) {
+update_camera_movement :: proc(
+	system: ^System,
+	camera: ^SDL.Rect,
+	level_map: ^SDL.Rect,
+) {
 	for entity in system.entities {
 		transform := get_transform(entity)
-		camera.x = cast(i32)transform.position.x
-		camera.y = cast(i32)transform.position.y
+
+		if cast(i32)transform.position.x + (camera.w / 2) < level_map.w {
+			camera.x = cast(i32)transform.position.x - (camera.w / 2)
+		}
+
+		if cast(i32)transform.position.y + (camera.h / 2) < level_map.h {
+			camera.y = cast(i32)transform.position.y - (camera.h / 2)
+		}
+
+		// Clamp camera to screen boundaries
+		camera.x = camera.x < 0 ? 0 : camera.x
+		camera.y = camera.y < 0 ? 0 : camera.y
+		camera.x = camera.x > camera.w ? camera.w : camera.x
+		camera.y = camera.y > camera.h ? camera.h : camera.y
+
 		inform(
 			"%vupdate_camera_follow:%v camera position: %v, %v",
 			PURPLE,
