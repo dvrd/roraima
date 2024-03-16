@@ -101,12 +101,7 @@ has_component :: proc(entity: ^Entity, component: ComponentType) -> bool {
 	return component in entity.owner.entity_component_signatures[entity.id]
 }
 
-get_component :: proc(
-	entity: ^Entity,
-	id: ComponentType,
-) -> (
-	component: ^Component,
-) {
+get_component :: proc(entity: ^Entity, id: ComponentType) -> ComponentData {
 	if int(id) >= len(entity.owner.component_pools) {
 		error("%vget_component:%v Component Pool %v not found", PURPLE, END, id)
 		os.exit(1)
@@ -122,10 +117,35 @@ get_component :: proc(
 		os.exit(1)
 	}
 
-	component = pool[entity.id];if component == nil {
+	component := pool[entity.id]
+	if component == nil {
 		error("%vget_component:%v Component %v not found", PURPLE, END, id)
 		os.exit(1)
 	}
 
-	return
+	return component.data
+}
+
+get_sprite :: proc(data: ^Entity) -> ^Sprite {
+	return get_component(data, .Sprite).(^Sprite)
+}
+
+get_transform :: proc(data: ^Entity) -> ^Transform {
+	return get_component(data, .Transform).(^Transform)
+}
+
+get_rigid_body :: proc(data: ^Entity) -> ^RigidBody {
+	return get_component(data, .RigidBody).(^RigidBody)
+}
+
+get_animation :: proc(data: ^Entity) -> ^Animation {
+	return get_component(data, .Animation).(^Animation)
+}
+
+get_box_collider :: proc(data: ^Entity) -> ^BoxCollider {
+	return get_component(data, .BoxCollider).(^BoxCollider)
+}
+
+get_keyboard_controller :: proc(data: ^Entity) -> ^KeyboardController {
+	return get_component(data, .KeyboardController).(^KeyboardController)
 }

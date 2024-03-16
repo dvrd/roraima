@@ -27,7 +27,7 @@ Event :: struct {
 }
 
 EventCallback :: struct {
-	execute: proc(data: EventData),
+	execute: proc(system: ^System, event: EventData),
 }
 
 Handlers :: [dynamic]^EventCallback
@@ -58,7 +58,7 @@ reset_event_bus :: proc(bus: ^EventBus) {
 subscribe_to_event :: proc(
 	bus: ^EventBus,
 	event_kind: EventKind,
-	callback: proc(event: EventData),
+	callback: proc(system: ^System, event: EventData),
 ) {
 	if ok := event_kind in bus.subscribers; !ok {
 		new_handlers := make(Handlers)
@@ -70,11 +70,11 @@ subscribe_to_event :: proc(
 	append(&bus.subscribers[event_kind], subscriber)
 }
 
-emit_event :: proc(bus: ^EventBus, event: Event) {
+emit_event :: proc(bus: ^EventBus, system: ^System, event: Event) {
 	handlers, ok := bus.subscribers[event.kind];if ok {
 		debug("emit_event: handlers len (%v)", len(handlers))
 		for handler in handlers {
-			handler.execute(event.data)
+			handler.execute(system, event.data)
 		}
 	}
 }

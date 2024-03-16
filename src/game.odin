@@ -16,9 +16,13 @@ Vec2 :: [2]f64
 State :: struct {
 	window:        ^SDL.Window,
 	renderer:      ^SDL.Renderer,
+	camera:        SDL.Rect,
 	is_running:    bool,
 	is_debug:      bool,
-	screen:        [2]i32,
+	screen:        struct {
+		w: i32,
+		h: i32,
+	},
 	ms_prev_frame: u32,
 	clock:         struct {
 		delta:       f64,
@@ -65,8 +69,8 @@ initialize :: proc(game: ^State) {
 		"Roraima v1.0.0",
 		SDL.WINDOWPOS_CENTERED,
 		SDL.WINDOWPOS_CENTERED,
-		screen.x,
-		screen.y,
+		screen.w,
+		screen.h,
 		{.BORDERLESS},
 	)
 	if window == nil {
@@ -82,6 +86,11 @@ initialize :: proc(game: ^State) {
 
 	SDL.SetWindowFullscreen(window, {.FULLSCREEN})
 
+	camera.x = 0
+	camera.y = 0
+	camera.w = screen.w
+	camera.h = screen.h
+
 	is_running = true
 }
 
@@ -95,11 +104,12 @@ process_input :: proc(game: ^State) {
 			#partial switch event.key.keysym.sym {
 			case .ESCAPE:
 				is_running = false
-			case .d:
+			case .TAB:
 				is_debug = !is_debug
 			}
 			emit_event(
 				event_bus,
+				get_system(registry, .KeyboardControl),
 				{.KeyPressed, KeyPressedEvent{event.key.keysym.sym}},
 			)
 			break loop
@@ -119,6 +129,7 @@ setup :: proc(game: ^State) {
 	add_system(registry, new_system(.RenderCollider))
 	add_system(registry, new_system(.Damage))
 	add_system(registry, new_system(.KeyboardControl))
+	add_system(registry, new_system(.CameraFollow))
 
 	add_texture(
 		asset_store,
@@ -136,7 +147,7 @@ setup :: proc(game: ^State) {
 		asset_store,
 		renderer,
 		"chopper-image",
-		"assets/images/chopper.png",
+		"assets/images/chopper-spritesheet.png",
 	)
 	add_texture(asset_store, renderer, "radar-image", "assets/images/radar.png")
 	add_texture(
@@ -186,16 +197,21 @@ setup :: proc(game: ^State) {
 	}
 
 	radar := create_entity(registry)
-	add_component(radar, new_transform({f64(screen.x - 74), 10}, {1, 1}, 0))
+	add_component(radar, new_transform({f64(screen.w - 74), 10}, {1, 1}, 0))
 	add_component(radar, new_sprite("radar-image", 64, 64, 0, 0, 1))
 	add_component(radar, new_animation(8, 5))
 
 	chopper := create_entity(registry)
-	add_component(chopper, new_transform({10, 100}, {1, 1}, 0))
-	add_component(chopper, new_rigid_body({100, 0}))
-	add_component(chopper, new_sprite("chopper-image", 32, 32, 0, 0, 1))
+	add_component(chopper, new_transform({10, 100}, {2, 2}, 0))
+	add_component(chopper, new_rigid_body({0, 0}))
+	add_component(chopper, new_sprite("chopper-image", 32, 32, 0, 32, 1))
 	add_component(chopper, new_animation(2, 10))
 	add_component(chopper, new_box_collider(32, 32))
+	add_component(
+		chopper,
+		new_keyboard_controller({0, -100}, {100, 0}, {0, 100}, {-100, 0}),
+	)
+	add_component(chopper, new_camera_follow())
 
 	tank := create_entity(registry)
 	add_component(tank, new_transform({100, 10}, {1, 1}, 0))
@@ -243,10 +259,12 @@ update :: proc(game: ^State) {
 	animation_system := get_system(registry, .Animation)
 	movement_system := get_system(registry, .Movement)
 	collision_system := get_system(registry, .Collision)
+	camera_follow_system := get_system(registry, .CameraFollow)
 
 	update_animation(animation_system)
 	update_movement(movement_system, clock.delta)
 	update_collision(collision_system, event_bus)
+	update_camera_follow(camera_follow_system, &camera)
 
 	clock.last_frame = SDL.GetTicks()
 }

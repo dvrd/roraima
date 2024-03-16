@@ -1,5 +1,6 @@
 package roraima
 
+import "core:os"
 import SDL "vendor:sdl2"
 
 Transform :: struct {
@@ -8,8 +9,44 @@ Transform :: struct {
 	rotation: f64,
 }
 
+new_transform :: proc(
+	position: Vec2,
+	scale: Vec2,
+	rotation: f64,
+) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_transform: failed to create new Transform component")
+		os.exit(1)
+	}
+	component.id = .Transform
+	component.data, err = new(Transform)
+	if err != nil {
+		error("new_transform: failed to create new Transform component")
+		os.exit(1)
+	}
+	component.data.(^Transform)^ = Transform{position, scale, rotation}
+	return component
+}
+
 RigidBody :: struct {
 	velocity: Vec2,
+}
+
+new_rigid_body :: proc(velocity: Vec2) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_rigid_body: failed to create new RigidBody component")
+		os.exit(1)
+	}
+	component.id = .RigidBody
+	component.data, err = new(RigidBody)
+	if err != nil {
+		error("new_rigid_body: failed to create new RigidBody component")
+		os.exit(1)
+	}
+	component.data.(^RigidBody)^ = RigidBody{velocity}
+	return component
 }
 
 Sprite :: struct {
@@ -20,12 +57,56 @@ Sprite :: struct {
 	src_rect: SDL.Rect,
 }
 
+new_sprite :: proc(id: string, width, height, x, y, z_idx: i32) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_sprite: failed to create new Sprite component")
+		os.exit(1)
+	}
+	component.id = .Sprite
+	component.data, err = new(Sprite)
+	if err != nil {
+		error("new_sprite: failed to create new Sprite component")
+		os.exit(1)
+	}
+	component.data.(^Sprite)^ = Sprite {
+		id,
+		width,
+		height,
+		z_idx,
+		SDL.Rect{x, y, width, height},
+	}
+	return component
+}
+
 Animation :: struct {
 	frames:        i32,
 	current_frame: i32,
 	speed_rate:    i32,
 	is_loop:       bool,
 	start_time:    i32,
+}
+
+new_animation :: proc(frames, speed_rate: i32, is_loop := true) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_animation: failed to create new Animation component")
+		os.exit(1)
+	}
+	component.id = .Animation
+	component.data, err = new(Animation)
+	if err != nil {
+		error("new_animation: failed to create new Animation component")
+		os.exit(1)
+	}
+	component.data.(^Animation)^ = Animation {
+		frames        = frames,
+		current_frame = 1,
+		speed_rate    = speed_rate,
+		is_loop       = is_loop,
+		start_time    = cast(i32)SDL.GetTicks(),
+	}
+	return component
 }
 
 BoxCollider :: struct {
@@ -35,25 +116,111 @@ BoxCollider :: struct {
 	color:  [4]u8,
 }
 
+new_box_collider :: proc(
+	width: i32 = 0,
+	height: i32 = 0,
+	offset: Vec2 = {0, 0},
+	color: [4]u8 = {255, 0, 0, 255},
+) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_box_collider: failed to create new BoxCollider component")
+		os.exit(1)
+	}
+	component.id = .BoxCollider
+	component.data, err = new(BoxCollider)
+	if err != nil {
+		error("new_box_collider: failed to create new BoxCollider component")
+		os.exit(1)
+	}
+	component.data.(^BoxCollider)^ = BoxCollider {
+		width  = width,
+		height = height,
+		offset = offset,
+		color  = color,
+	}
+	return component
+}
+
+KeyboardController :: struct {
+	up:    Vec2,
+	right: Vec2,
+	down:  Vec2,
+	left:  Vec2,
+}
+
+new_keyboard_controller :: proc(
+	up: Vec2 = {0, 0},
+	right: Vec2 = {0, 0},
+	down: Vec2 = {0, 0},
+	left: Vec2 = {0, 0},
+) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error(
+			"new_keyboard_controller: failed to create new KeyboardController component",
+		)
+		os.exit(1)
+	}
+	component.id = .KeyboardController
+	component.data, err = new(KeyboardController)
+	if err != nil {
+		error(
+			"new_keyboard_controller: failed to create new KeyboardController component",
+		)
+		os.exit(1)
+	}
+	component.data.(^KeyboardController)^ = KeyboardController {
+		up    = up,
+		right = right,
+		down  = down,
+		left  = left,
+	}
+	return component
+}
+
+CameraFollow :: struct {}
+
+new_camera_follow :: proc() -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_camera_follow: failed to create new CameraFollow component")
+		os.exit(1)
+	}
+	component.id = .CameraFollow
+	component.data, err = new(CameraFollow)
+	if err != nil {
+		error("new_camera_follow: failed to create new CameraFollow component")
+		os.exit(1)
+	}
+	return component
+}
+
 ComponentType :: enum {
 	Transform = 0,
 	RigidBody,
 	Sprite,
 	Animation,
 	BoxCollider,
+	KeyboardController,
+	CameraFollow,
+}
+
+ComponentData :: union {
+	^Transform,
+	^RigidBody,
+	^Sprite,
+	^Animation,
+	^BoxCollider,
+	^KeyboardController,
+	^CameraFollow,
 }
 
 Signature :: bit_set[ComponentType]
 
 Component :: struct {
 	id:   ComponentType,
-	data: union {
-		^Transform,
-		^RigidBody,
-		^Sprite,
-		^Animation,
-		^BoxCollider,
-	},
+	data: ComponentData,
 }
 
 delete_component :: proc(component: ^Component) {
@@ -68,90 +235,10 @@ delete_component :: proc(component: ^Component) {
 		free(v)
 	case ^BoxCollider:
 		free(v)
+	case ^KeyboardController:
+		free(v)
+	case ^CameraFollow:
+		free(v)
 	}
 	free(component)
-}
-
-new_transform :: proc(
-	position: Vec2,
-	scale: Vec2,
-	rotation: f64,
-) -> (
-	component: ^Component,
-) {
-	component = new(Component)
-	component.id = .Transform
-	component.data = new(Transform)
-	component.data.(^Transform)^ = Transform{position, scale, rotation}
-
-	return
-}
-
-new_rigid_body :: proc(velocity: Vec2) -> (component: ^Component) {
-	component = new(Component)
-	component.id = .RigidBody
-	component.data = new(RigidBody)
-	component.data.(^RigidBody)^ = RigidBody{velocity}
-
-	return
-}
-
-new_sprite :: proc(
-	id: string,
-	width, height, x, y, z_idx: i32,
-) -> (
-	component: ^Component,
-) {
-	component = new(Component)
-	component.id = .Sprite
-	component.data = new(Sprite)
-	component.data.(^Sprite)^ = Sprite {
-		id,
-		width,
-		height,
-		z_idx,
-		SDL.Rect{x, y, width, height},
-	}
-	return
-}
-
-new_animation :: proc(
-	frames, speed_rate: i32,
-	is_loop := true,
-) -> (
-	component: ^Component,
-) {
-	component = new(Component)
-	component.id = .Animation
-	component.data = new(Animation)
-	component.data.(^Animation)^ = Animation {
-		frames        = frames,
-		current_frame = 1,
-		speed_rate    = speed_rate,
-		is_loop       = is_loop,
-		start_time    = cast(i32)SDL.GetTicks(),
-	}
-
-	return
-}
-
-new_box_collider :: proc(
-	width: i32 = 0,
-	height: i32 = 0,
-	offset: Vec2 = {0, 0},
-	color: [4]u8 = {255, 0, 0, 255},
-) -> (
-	component: ^Component,
-) {
-	component = new(Component)
-	component.id = .BoxCollider
-	component.data = new(BoxCollider)
-	component.data.(^BoxCollider)^ = BoxCollider {
-		width  = width,
-		height = height,
-		offset = offset,
-		color  = color,
-	}
-
-	return
 }

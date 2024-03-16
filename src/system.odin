@@ -12,6 +12,7 @@ SystemType :: enum {
 	RenderCollider,
 	Damage,
 	KeyboardControl,
+	CameraFollow,
 }
 
 System :: struct {
@@ -45,6 +46,10 @@ new_system :: proc(type: SystemType) -> ^System {
 		sys.component_signature = {.Transform, .BoxCollider}
 	case .Damage:
 		sys.component_signature = {.BoxCollider}
+	case .KeyboardControl:
+		sys.component_signature = {.KeyboardController, .Sprite, .RigidBody}
+	case .CameraFollow:
+		sys.component_signature = {.CameraFollow, .Transform}
 	}
 
 	return sys
@@ -70,8 +75,8 @@ remove_entity_from_system :: proc(system: ^System, entity: ^Entity) {
 
 update_movement :: proc(system: ^System, delta: f64) {
 	for entity in system.entities {
-		transform := get_component(entity, .Transform).data.(^Transform)
-		rigid_body := get_component(entity, .RigidBody).data.(^RigidBody)
+		transform := get_transform(entity)
+		rigid_body := get_rigid_body(entity)
 		transform.position += rigid_body.velocity * delta
 	}
 }
@@ -82,19 +87,8 @@ update_render :: proc(
 	asset_store: ^AssetStore,
 ) {
 	for entity in system.entities {
-		transform := get_component(entity, .Transform).data.(^Transform)
-		sprite := get_component(entity, .Sprite).data.(^Sprite)
-
-		if transform == nil || sprite == nil {
-			error(
-				"%vupdate_render:%missing data in entity %v (transform: %v | sprite: %v)",
-				PURPLE,
-				END,
-				entity.id,
-				transform,
-				sprite,
-			)
-		}
+		transform := get_transform(entity)
+		sprite := get_sprite(entity)
 
 		dst_rect := SDL.Rect {
 			cast(i32)transform.position.x,
@@ -117,36 +111,22 @@ update_render :: proc(
 
 update_animation :: proc(system: ^System) {
 	for entity in system.entities {
-		animation := get_component(entity, .Animation)
-		sprite := get_component(entity, .Sprite)
-
-		if animation == nil || sprite == nil {
-			error(
-				"%vupdate_animation:%v missing data in entity %v (animation: %v | sprite: %v)",
-				PURPLE,
-				END,
-				entity.id,
-				animation,
-				sprite,
-			)
-		}
-
-		animation_data := animation.data.(^Animation)
-		sprite_data := sprite.data.(^Sprite)
+		animation := get_component(entity, .Animation).(^Animation)
+		sprite := get_component(entity, .Sprite).(^Sprite)
 
 		current_frame :=
-			(((cast(i32)SDL.GetTicks() - animation_data.start_time) *
-					animation_data.speed_rate) /
+			(((cast(i32)SDL.GetTicks() - animation.start_time) *
+					animation.speed_rate) /
 				1000) %
-			animation_data.frames
+			animation.frames
 
-		animation_data.current_frame = cast(i32)current_frame
+		animation.current_frame = cast(i32)current_frame
 
-		sprite_data.src_rect = SDL.Rect {
-			sprite_data.width * current_frame,
-			sprite_data.src_rect.y,
-			sprite_data.width,
-			sprite_data.height,
+		sprite.src_rect = SDL.Rect {
+			sprite.width * current_frame,
+			sprite.src_rect.y,
+			sprite.width,
+			sprite.height,
 		}
 	}
 }
@@ -172,8 +152,8 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 	for i := 0; i < len(system.entities); i += 1 {
 		a := system.entities[i]
 
-		a_transform := get_component(a, .Transform).data.(^Transform)
-		a_collider := get_component(a, .BoxCollider).data.(^BoxCollider)
+		a_transform := get_transform(a)
+		a_collider := get_box_collider(a)
 		for j := i + 1; j < len(system.entities); j += 1 {
 			b := system.entities[j]
 
@@ -181,8 +161,8 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 				continue
 			}
 
-			b_transform := get_component(b, .Transform).data.(^Transform)
-			b_collider := get_component(b, .BoxCollider).data.(^BoxCollider)
+			b_transform := get_transform(b)
+			b_collider := get_box_collider(b)
 
 			has_collided := check_aabb_collision(
 				a_transform,
@@ -202,7 +182,11 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 					b.id,
 				)
 
-				emit_event(bus, {.Collision, CollisionEvent{a, b}})
+				emit_event(
+					bus,
+					get_system(a.owner, .Damage),
+					{.Collision, CollisionEvent{a, b}},
+				)
 			} else {
 				a_collider.color = {255, 0, 0, 255}
 				b_collider.color = {255, 0, 0, 255}
@@ -213,13 +197,13 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 
 update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
 	for entity in system.entities {
-		transform := get_component(entity, .Transform).data.(^Transform)
-		collider := get_component(entity, .BoxCollider).data.(^BoxCollider)
+		transform := get_transform(entity)
+		collider := get_box_collider(entity)
 		collider_rect := SDL.Rect {
 			cast(i32)transform.position.x,
 			cast(i32)transform.position.y,
-			collider.width,
-			collider.height,
+			collider.width * cast(i32)transform.scale.x,
+			collider.height * cast(i32)transform.scale.y
 		}
 		SDL.SetRenderDrawColor(
 			renderer,
@@ -232,7 +216,22 @@ update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
 	}
 }
 
-on_collision :: proc(data: EventData) {
+update_camera_follow :: proc(system: ^System, camera: ^SDL.Rect) {
+	for entity in system.entities {
+		transform := get_transform(entity)
+		camera.x = cast(i32)transform.position.x
+		camera.y = cast(i32)transform.position.y
+		inform(
+			"%vupdate_camera_follow:%v camera position: %v, %v",
+			PURPLE,
+			END,
+			camera.x,
+			camera.y,
+		)
+	}
+}
+
+on_collision :: proc(system: ^System, data: EventData) {
 	kill_entity(data.(CollisionEvent).a)
 	kill_entity(data.(CollisionEvent).b)
 	inform(
@@ -244,9 +243,28 @@ on_collision :: proc(data: EventData) {
 	)
 }
 
-on_keypressed :: proc(data: EventData) {
-	event := data.(KeyPressedEvent)
-	inform("%von_keypressed:%v key [%v] pressed", PURPLE, END, event.symbol)
+on_keypressed :: proc(system: ^System, data: EventData) {
+	for entity in system.entities {
+		controller := get_keyboard_controller(entity)
+		sprite := get_sprite(entity)
+		rigid_body := get_rigid_body(entity)
+
+		event := data.(KeyPressedEvent)
+		#partial switch event.symbol {
+		case SDL.Keycode.UP, SDL.Keycode.w:
+			rigid_body.velocity = controller.up
+			sprite.src_rect.y = sprite.height * 0
+		case SDL.Keycode.RIGHT, SDL.Keycode.d:
+			rigid_body.velocity = controller.right
+			sprite.src_rect.y = sprite.height * 1
+		case SDL.Keycode.DOWN, SDL.Keycode.s:
+			rigid_body.velocity = controller.down
+			sprite.src_rect.y = sprite.height * 2
+		case SDL.Keycode.LEFT, SDL.Keycode.a:
+			rigid_body.velocity = controller.left
+			sprite.src_rect.y = sprite.height * 3
+		}
+	}
 }
 
 subscribe_to_events :: proc(bus: ^EventBus, system_id: SystemType) {
