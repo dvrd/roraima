@@ -1,11 +1,5 @@
 {
     "$schema": "https://raw.githubusercontent.com/DanielGavin/ols/master/misc/ols.schema.json",
-    "collections": [
-        {
-            "name": "roraima",
-            "path": "src"
-        }
-    ],
     "profile": "default",
     "profiles": [
 	{ "name": "default", "checker_path": ["src"]},

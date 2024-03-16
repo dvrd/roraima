@@ -2,13 +2,13 @@ PROJ=roraima
 SRC_DIR=src
 DEBUG_OUT_DIR=target/debug
 RELEASE_OUT_DIR=target/release
-COLLECTIONS=-collection:roraima=src
+COLLECTIONS=-collection:src=src
 
 IGNORE_ERRORS=2> /dev/null || true
 
 run: build_debug
 	@echo "BUILD_INFO: executing '$(PROJ)'\n"
-	@odin run $(SRC_DIR) -out:$(DEBUG_OUT_DIR)/$(PROJ) $(COLECTIONS)
+	@odin run $(SRC_DIR) -out:$(DEBUG_OUT_DIR)/$(PROJ) $(COLLECTIONS)
 
 debug: build_debug
 	@echo "BUILD_INFO: initializing debugger"
@@ -24,11 +24,11 @@ clear:
 
 build_debug: $(DEBUG_OUT_DIR)
 	@echo "BUILD_INFO: building debug version..."
-	@odin build $(SRC_DIR) -out:$(DEBUG_OUT_DIR)/$(PROJ) -debug $(COLECTIONS)
+	@odin build $(SRC_DIR) -out:$(DEBUG_OUT_DIR)/$(PROJ) -debug $(COLLECTIONS)
 
 build: $(RELEASE_OUT_DIR)
 	@echo "BUILD_INFO: building release version..."
-	@odin build $(SRC_DIR) -out:$(RELEASE_OUT_DIR)/$(PROJ) -o:speed $(COLECTIONS)
+	@odin build $(SRC_DIR) -out:$(RELEASE_OUT_DIR)/$(PROJ) -o:speed $(COLLECTIONS)
 
 $(DEBUG_OUT_DIR):
 	@mkdir -p $(DEBUG_OUT_DIR)

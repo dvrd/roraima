@@ -89,7 +89,7 @@ process_input :: proc(game: ^State) {
 	using game
 
 	event: SDL.Event
-	for SDL.PollEvent(&event) {
+	loop: for SDL.PollEvent(&event) {
 		#partial switch event.type {
 		case .KEYDOWN:
 			#partial switch event.key.keysym.sym {
@@ -98,6 +98,11 @@ process_input :: proc(game: ^State) {
 			case .d:
 				is_debug = !is_debug
 			}
+			emit_event(
+				event_bus,
+				{.KeyPressed, KeyPressedEvent{event.key.keysym.sym}},
+			)
+			break loop
 		case .QUIT:
 			is_running = false
 		}
@@ -113,6 +118,7 @@ setup :: proc(game: ^State) {
 	add_system(registry, new_system(.Collision))
 	add_system(registry, new_system(.RenderCollider))
 	add_system(registry, new_system(.Damage))
+	add_system(registry, new_system(.KeyboardControl))
 
 	add_texture(
 		asset_store,
@@ -228,8 +234,9 @@ update :: proc(game: ^State) {
 		debug("FPS: %v", clock.fps)
 	}
 
-	damage_system := get_system(registry, .Damage)
-	subscribe_to_events(event_bus, damage_system)
+	clear(&event_bus.subscribers)
+	subscribe_to_events(event_bus, .Damage)
+	subscribe_to_events(event_bus, .KeyboardControl)
 
 	update_registry(registry)
 

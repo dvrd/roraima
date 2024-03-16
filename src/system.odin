@@ -11,6 +11,7 @@ SystemType :: enum {
 	Collision,
 	RenderCollider,
 	Damage,
+	KeyboardControl,
 }
 
 System :: struct {
@@ -31,7 +32,7 @@ new_system :: proc(type: SystemType) -> ^System {
 	sys.entities = make([dynamic]^Entity)
 	sys.component_signature = {}
 
-	switch type {
+	#partial switch type {
 	case .Render:
 		sys.component_signature = {.Transform, .Sprite}
 	case .Movement:
@@ -201,10 +202,7 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 					b.id,
 				)
 
-				emit_event(bus, Event{
-					kind=.Collision,
-					data=CollisionEvent{a, b}
-				})
+				emit_event(bus, {.Collision, CollisionEvent{a, b}})
 			} else {
 				a_collider.color = {255, 0, 0, 255}
 				b_collider.color = {255, 0, 0, 255}
@@ -234,25 +232,28 @@ update_render_collider :: proc(system: ^System, renderer: ^SDL.Renderer) {
 	}
 }
 
-damage_on_collision :: proc(data: EventData) {
+on_collision :: proc(data: EventData) {
+	kill_entity(data.(CollisionEvent).a)
+	kill_entity(data.(CollisionEvent).b)
 	inform(
-		"%vdamage_on_collision:%v %v is colliding with %v",
+		"%von_collision:%v %v is colliding with %v",
 		PURPLE,
 		END,
 		data.(CollisionEvent).a.id,
 		data.(CollisionEvent).b.id,
 	)
-	kill_entity(data.(CollisionEvent).a)
-	kill_entity(data.(CollisionEvent).b)
 }
 
-subscribe_to_collision_events :: proc(bus: ^EventBus, system: ^System) {
-	#partial switch system.id {
+on_keypressed :: proc(data: EventData) {
+	event := data.(KeyPressedEvent)
+	inform("%von_keypressed:%v key [%v] pressed", PURPLE, END, event.symbol)
+}
+
+subscribe_to_events :: proc(bus: ^EventBus, system_id: SystemType) {
+	#partial switch system_id {
+	case .KeyboardControl:
+		subscribe_to_event(bus, .KeyPressed, on_keypressed)
 	case .Damage:
-		subscribe_to_event(bus, .Collision, damage_on_collision)
+		subscribe_to_event(bus, .Collision, on_collision)
 	}
-}
-
-subscribe_to_events :: proc {
-	subscribe_to_collision_events,
 }

@@ -1,16 +1,24 @@
 package roraima
 
+import SDL "vendor:sdl2"
+
 CollisionEvent :: struct {
 	a: ^Entity,
 	b: ^Entity,
 }
 
+KeyPressedEvent :: struct {
+	symbol: SDL.Keycode,
+}
+
 EventKind :: enum {
 	Collision,
+	KeyPressed,
 }
 
 EventData :: union {
 	CollisionEvent,
+	KeyPressedEvent,
 }
 
 Event :: struct {
@@ -64,6 +72,7 @@ subscribe_to_event :: proc(
 
 emit_event :: proc(bus: ^EventBus, event: Event) {
 	handlers, ok := bus.subscribers[event.kind];if ok {
+		debug("emit_event: handlers len (%v)", len(handlers))
 		for handler in handlers {
 			handler.execute(event.data)
 		}
