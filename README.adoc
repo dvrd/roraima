@@ -1,7 +1,8 @@
-= Roraima {version}
 :author: Dan Castrillo
+:version: 0.1.0
 
-{author} <https://github.com/dvrd[@dvrd]>;
+= Roraima
 
 Basic 2d game engine for learning purposes.
+
 
