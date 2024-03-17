@@ -13,6 +13,8 @@ SystemType :: enum {
 	Damage,
 	KeyboardControl,
 	CameraMovement,
+	ParticleEmit,
+	ParticleLifeCycle,
 }
 
 System :: struct {
@@ -50,6 +52,10 @@ new_system :: proc(type: SystemType) -> ^System {
 		sys.component_signature = {.KeyboardController, .Sprite, .RigidBody}
 	case .CameraMovement:
 		sys.component_signature = {.CameraFollow, .Transform}
+	case .ParticleEmit:
+		sys.component_signature = {.Transform, .ParticleEmitter}
+	case .ParticleLifeCycle:
+		sys.component_signature = {.Particle}
 	}
 
 	return sys
@@ -175,13 +181,6 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 			if has_collided {
 				a_collider.color = {255, 255, 0, 255}
 				b_collider.color = {255, 255, 0, 255}
-				inform(
-					"%vupdate_collision:%v %v is colliding with %v",
-					PURPLE,
-					END,
-					a.id,
-					b.id,
-				)
 
 				emit_event(
 					bus,
@@ -243,7 +242,7 @@ update_camera_movement :: proc(
 		camera.x = camera.x > camera.w ? camera.w : camera.x
 		camera.y = camera.y > camera.h ? camera.h : camera.y
 
-		inform(
+		debug(
 			"%vupdate_camera_follow:%v camera position: %v, %v",
 			PURPLE,
 			END,
@@ -253,10 +252,54 @@ update_camera_movement :: proc(
 	}
 }
 
+update_particle_emit :: proc(system: ^System) {
+	for entity in system.entities {
+		particle_emitter := get_particle_emitter(entity)
+		transform := get_transform(entity)
+
+		time_since_last_emit := int(SDL.GetTicks()) - particle_emitter.last_emit
+		if time_since_last_emit > particle_emitter.frequency {
+			particle_pos := transform.position
+			if has_component(entity, .Sprite) {
+				sprite := get_sprite(entity)
+				particle_pos +=  {
+					transform.scale.x * cast(f64)sprite.width / 2,
+					transform.scale.y * cast(f64)sprite.height / 2,
+				}
+			}
+			projectile := create_entity(entity.owner)
+			add_component(projectile, new_transform(particle_pos))
+			add_component(projectile, new_rigid_body(particle_emitter.velocity))
+			add_component(projectile, new_sprite("bullet-image", 4, 4, z_idx = 4))
+			add_component(projectile, new_box_collider(4, 4))
+			add_component(
+				projectile,
+				new_particle(
+					particle_emitter.is_friendly,
+					particle_emitter.hp_dmg,
+					particle_emitter.duration,
+				),
+			)
+
+			particle_emitter.last_emit = int(SDL.GetTicks())
+		}
+	}
+}
+
+update_particle_life_cycle :: proc(system: ^System) {
+	for entity in system.entities {
+		particle := get_particle(entity)
+		age := int(SDL.GetTicks()) - particle.birth
+		if age >= particle.lifespan {
+			kill_entity(entity)
+		}
+	}
+}
+
 on_collision :: proc(system: ^System, data: EventData) {
-	kill_entity(data.(CollisionEvent).a)
-	kill_entity(data.(CollisionEvent).b)
-	inform(
+	// kill_entity(data.(CollisionEvent).a)
+	// kill_entity(data.(CollisionEvent).b)
+	debug(
 		"%von_collision:%v %v is colliding with %v",
 		PURPLE,
 		END,

@@ -18,7 +18,7 @@ new_asset_store :: proc() -> ^AssetStore {
 		)
 		os.exit(1)
 	}
-	inform("%vnew_asset_store:%v Created new AssetStore: %v", PURPLE, END, store)
+	inform("%vnew_asset_store:%v Created new AssetStore", PURPLE, END)
 	return store
 }
 

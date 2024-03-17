@@ -10,9 +10,9 @@ Transform :: struct {
 }
 
 new_transform :: proc(
-	position: Vec2,
-	scale: Vec2,
-	rotation: f64,
+	position := Vec2{0, 0},
+	scale := Vec2{1, 1},
+	rotation := 0.,
 ) -> ^Component {
 	component, err := new(Component)
 	if err != nil {
@@ -33,7 +33,7 @@ RigidBody :: struct {
 	velocity: Vec2,
 }
 
-new_rigid_body :: proc(velocity: Vec2) -> ^Component {
+new_rigid_body :: proc(velocity := Vec2{0, 0}) -> ^Component {
 	component, err := new(Component)
 	if err != nil {
 		error("new_rigid_body: failed to create new RigidBody component")
@@ -60,7 +60,10 @@ Sprite :: struct {
 
 new_sprite :: proc(
 	id: string,
-	width, height, x, y, z_idx: i32,
+	width, height: i32,
+	x: i32 = 0,
+	y: i32 = 0,
+	z_idx: i32 = 0,
 	is_fixed := false,
 ) -> ^Component {
 	component, err := new(Component)
@@ -80,7 +83,7 @@ new_sprite :: proc(
 		height,
 		z_idx,
 		is_fixed,
-		SDL.Rect{x, y, width, height},
+		SDL.Rect{x = x, y = y, w = width, h = height},
 	}
 	return component
 }
@@ -202,6 +205,101 @@ new_camera_follow :: proc() -> ^Component {
 	return component
 }
 
+ParticleEmitter :: struct {
+	velocity:    Vec2,
+	frequency:   int,
+	duration:    int,
+	hp_dmg:      int,
+	is_friendly: bool,
+	last_emit:   int,
+}
+
+new_particle_emitter :: proc(
+	velocity: Vec2 = {0, 0},
+	frequency := 0,
+	duration := 10000,
+	hit_percentage_dmg := 10,
+	is_friendly := false,
+) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error(
+			"new_particle_emitter: failed to create new ParticleEmitter component",
+		)
+		os.exit(1)
+	}
+	component.id = .ParticleEmitter
+	component.data, err = new(ParticleEmitter)
+	if err != nil {
+		error("new_camera_follow: failed to create new ParticleEmitter component")
+		os.exit(1)
+	}
+	component.data.(^ParticleEmitter)^ = ParticleEmitter {
+		velocity,
+		frequency,
+		duration,
+		hit_percentage_dmg,
+		is_friendly,
+		int(SDL.GetTicks()),
+	}
+	return component
+}
+
+Health :: struct {
+	hp: int,
+}
+
+new_health :: proc(hp := 0) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_health: failed to create new Health component")
+		os.exit(1)
+	}
+	component.id = .Health
+	component.data, err = new(Health)
+	if err != nil {
+		error("new_health: failed to create new Health component")
+		os.exit(1)
+	}
+	component.data.(^Health)^ = Health{hp}
+	return component
+}
+
+Particle :: struct {
+	is_friendly: bool,
+	hp_dmg:      int,
+	lifespan:    int,
+	birth:       int,
+}
+
+new_particle :: proc(
+	is_friendly := false,
+	hp_dmg := 0,
+	lifespan := 0,
+) -> ^Component {
+	component, err := new(Component)
+	if err != nil {
+		error("new_particle: failed to create new Particle component")
+		os.exit(1)
+	}
+
+	component.data, err = new(Particle)
+	if err != nil {
+		error("new_particle: failed to create new Particle component")
+		os.exit(1)
+	}
+
+	component.id = .Particle
+	component.data.(^Particle)^ = Particle {
+		is_friendly = is_friendly,
+		hp_dmg      = hp_dmg,
+		lifespan    = lifespan,
+		birth       = int(SDL.GetTicks()),
+	}
+
+	return component
+}
+
 ComponentType :: enum {
 	Transform = 0,
 	RigidBody,
@@ -210,6 +308,9 @@ ComponentType :: enum {
 	BoxCollider,
 	KeyboardController,
 	CameraFollow,
+	ParticleEmitter,
+	Health,
+	Particle,
 }
 
 ComponentData :: union {
@@ -220,6 +321,9 @@ ComponentData :: union {
 	^BoxCollider,
 	^KeyboardController,
 	^CameraFollow,
+	^ParticleEmitter,
+	^Health,
+	^Particle,
 }
 
 Signature :: bit_set[ComponentType]
@@ -244,6 +348,12 @@ delete_component :: proc(component: ^Component) {
 	case ^KeyboardController:
 		free(v)
 	case ^CameraFollow:
+		free(v)
+	case ^ParticleEmitter:
+		free(v)
+	case ^Health:
+		free(v)
+	case ^Particle:
 		free(v)
 	}
 	free(component)

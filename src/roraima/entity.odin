@@ -149,3 +149,11 @@ get_box_collider :: proc(data: ^Entity) -> ^BoxCollider {
 get_keyboard_controller :: proc(data: ^Entity) -> ^KeyboardController {
 	return get_component(data, .KeyboardController).(^KeyboardController)
 }
+
+get_particle_emitter :: proc(data: ^Entity) -> ^ParticleEmitter {
+	return get_component(data, .ParticleEmitter).(^ParticleEmitter)
+}
+
+get_particle :: proc(data: ^Entity) -> ^Particle {
+	return get_component(data, .Particle).(^Particle)
+}

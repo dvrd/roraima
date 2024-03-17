@@ -1,5 +1,5 @@
 PROJ=roraima
-SRC_DIR=src
+SRC_DIR=src/game
 DEBUG_OUT_DIR=target/debug
 RELEASE_OUT_DIR=target/release
 COLLECTIONS=-collection:src=src
