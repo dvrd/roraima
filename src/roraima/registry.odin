@@ -33,7 +33,6 @@ new_registry :: proc() -> (reg: ^Registry, err: Error) {
 	reg.tag_per_entity = make(map[int]string) or_return
 	reg.entities_per_group = make(map[string][dynamic]^Entity) or_return
 	reg.group_per_entity = make(map[int]string) or_return
-
 	reg.free_ids = new(q.Queue(int)) or_return
 	q.init(reg.free_ids)
 
@@ -62,7 +61,7 @@ destroy_registry :: proc(registry: ^Registry) {
 	delete(tag_per_entity)
 
 
-	for name, group in entities_per_group {
+	for _, group in entities_per_group {
 		delete(group)
 	}
 	delete(entities_per_group)
@@ -102,7 +101,7 @@ get_entity_by_tag :: proc(registry: ^Registry, tag: string) -> ^Entity {
 		os.exit(1)
 	}
 
-	return registry.entity_per_tag[tag]
+	return entity_per_tag[tag]
 }
 
 get_entity :: proc {

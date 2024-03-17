@@ -14,6 +14,7 @@ setup_player :: proc(game: ^roraima.State) {
 	)
 
 	chopper := create_entity(registry)
+	tag(chopper, "player")
 	add_component(chopper, new_transform({100, 100}, {1, 1}, 0))
 	add_component(chopper, new_rigid_body({0, 0}))
 	add_component(
@@ -22,7 +23,7 @@ setup_player :: proc(game: ^roraima.State) {
 	)
 	add_component(chopper, new_animation(2, 10))
 	add_component(chopper, new_particle_emitter({450, 450}, is_friendly = true))
-	add_component(chopper, new_box_collider(32, 32, color = {255, 255, 0, 255}))
+	add_component(chopper, new_box_collider(32, 32))
 	add_component(
 		chopper,
 		new_keyboard_controller({0, -200}, {200, 0}, {0, 200}, {-200, 0}),
@@ -43,6 +44,7 @@ setup_tank :: proc(game: ^roraima.State) {
 	)
 
 	tank := create_entity(registry)
+	group(tank, "enemies")
 	add_component(tank, new_transform({500, 10}, {1, 1}, 0))
 	add_component(tank, new_rigid_body({0, 0}))
 	add_component(tank, new_sprite("tank-image", 32, 32, z_idx = 1))
@@ -63,6 +65,7 @@ setup_truck :: proc(game: ^roraima.State) {
 	)
 
 	truck := create_entity(registry)
+	group(truck, "enemies")
 	add_component(truck, new_transform({150, 500}, {1, 1}, 0))
 	add_component(truck, new_rigid_body({0, 0}))
 	add_component(truck, new_sprite("truck-image", 32, 32, z_idx = 1))

@@ -71,7 +71,6 @@ subscribe_to_event :: proc(
 
 emit_event :: proc(bus: ^EventBus, system: ^System, event: Event) {
 	handlers, ok := bus.subscribers[event.kind];if ok {
-		debug("emit_event: handlers len (%v)", len(handlers))
 		for handler in handlers {
 			handler.execute(system, event.data)
 		}

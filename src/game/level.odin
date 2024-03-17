@@ -35,6 +35,7 @@ setup_level :: proc(game: ^roraima.State) {
 			next += 2
 			srcRectX := int(ch - '0') * tile_size
 			tile := create_entity(registry)
+			group(tile, "tiles")
 			posX := cast(f64)x * cast(f64)tile_size * tile_scale
 			posY := cast(f64)y * cast(f64)tile_size * tile_scale
 			position := Vec2{posX, posY}

@@ -10,18 +10,13 @@ setup :: proc(game: ^roraima.State) {
 	using game
 	using roraima
 
-	add_texture(
-		asset_store,
-		renderer,
-		"bullet-image",
-		"assets/images/bullet.png",
-	)
-
-	setup_radar(game)
 	setup_player(game)
 	setup_tank(game)
 	setup_truck(game)
+	setup_radar(game)
+	roraima.inform("Setting up level")
 	setup_level(game)
+	roraima.inform("Level set up")
 }
 
 main :: proc() {
