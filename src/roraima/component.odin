@@ -217,7 +217,7 @@ ParticleEmitter :: struct {
 new_particle_emitter :: proc(
 	velocity: Vec2 = {0, 0},
 	frequency := 0,
-	duration := 10000,
+	duration := 10 * MILLISECOND,
 	hit_percentage_dmg := 10,
 	is_friendly := false,
 ) -> ^Component {

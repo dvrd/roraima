@@ -257,6 +257,8 @@ update_particle_emit :: proc(system: ^System) {
 		particle_emitter := get_particle_emitter(entity)
 		transform := get_transform(entity)
 
+		if particle_emitter.frequency == 0 {continue}
+
 		time_since_last_emit := int(SDL.GetTicks()) - particle_emitter.last_emit
 		if time_since_last_emit > particle_emitter.frequency {
 			particle_pos := transform.position
@@ -332,11 +334,55 @@ on_keypressed :: proc(system: ^System, data: EventData) {
 	}
 }
 
+on_shoot :: proc(system: ^System, data: EventData) {
+	event := data.(KeyPressedEvent)
+	#partial switch event.symbol {
+	case SDL.Keycode.SPACE:
+		for entity in system.entities {
+			if has_component(entity, .CameraFollow) {
+				emitter := get_particle_emitter(entity)
+				transform := get_transform(entity)
+				rigid_body := get_rigid_body(entity)
+
+				particle_pos := transform.position
+				if has_component(entity, .Sprite) {
+					sprite := get_sprite(entity)
+					particle_pos +=  {
+						transform.scale.x * cast(f64)sprite.width / 2,
+						transform.scale.y * cast(f64)sprite.height / 2,
+					}
+				}
+
+				particle_vel := emitter.velocity
+				x := 0.
+				y := 0.
+				if rigid_body.velocity.x > 0 {x += 1}
+				if rigid_body.velocity.x < 0 {x -= 1}
+				if rigid_body.velocity.y > 0 {y += 1}
+				if rigid_body.velocity.y < 0 {y -= 1}
+				particle_vel *= {x, y}
+
+				particle := create_entity(entity.owner)
+				add_component(particle, new_transform(particle_pos))
+				add_component(particle, new_rigid_body(particle_vel))
+				add_component(particle, new_sprite("bullet-image", 4, 4, z_idx = 4))
+				add_component(particle, new_box_collider(4, 4))
+				add_component(
+					particle,
+					new_particle(emitter.is_friendly, emitter.hp_dmg, emitter.duration),
+				)
+			}
+		}
+	}
+}
+
 subscribe_to_events :: proc(bus: ^EventBus, system_id: SystemType) {
 	#partial switch system_id {
 	case .KeyboardControl:
 		subscribe_to_event(bus, .KeyPressed, on_keypressed)
 	case .Damage:
 		subscribe_to_event(bus, .Collision, on_collision)
+	case .ParticleEmit:
+		subscribe_to_event(bus, .KeyPressed, on_shoot)
 	}
 }

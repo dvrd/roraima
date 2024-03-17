@@ -7,8 +7,8 @@ import "core:time"
 import SDL "vendor:sdl2"
 
 FPS :: 60
-MS_PER_SEC :: 1_000
-MS_PER_FRAME :: MS_PER_SEC / FPS
+MILLISECOND :: 1_000
+MS_PER_FRAME :: MILLISECOND / FPS
 NS_PER_SEC :: 100_000_000
 
 Vec2 :: [2]f64
@@ -176,6 +176,13 @@ setup_game :: proc(
 		add_system(registry, new_system(.ParticleLifeCycle))
 	}
 
+	add_texture(
+		asset_store,
+		renderer,
+		"bullet-image",
+		"assets/images/bullet.png",
+	)
+
 	clock = {
 		fps        = FPS,
 		frames     = 0,
@@ -194,7 +201,7 @@ update_game :: proc(game: ^State) {
 	now := time.time_to_unix_nano(time.now())
 
 	clock.delta_ms = SDL.GetTicks() - clock.last_frame
-	clock.delta = cast(f64)(clock.delta_ms) / MS_PER_SEC
+	clock.delta = cast(f64)(clock.delta_ms) / MILLISECOND
 
 	clock.frames += 1
 
@@ -213,6 +220,10 @@ update_game :: proc(game: ^State) {
 
 	if .KeyboardControl in enabled_systems {
 		subscribe_to_events(event_bus, .KeyboardControl)
+	}
+
+	if .ParticleEmit in enabled_systems {
+		subscribe_to_events(event_bus, .ParticleEmit)
 	}
 
 	update_registry(registry)
