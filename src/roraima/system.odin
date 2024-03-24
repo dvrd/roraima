@@ -270,6 +270,7 @@ update_particle_emit :: proc(system: ^System) {
 				}
 			}
 			projectile := create_entity(entity.owner)
+			group(projectile, "projectiles")
 			add_component(projectile, new_transform(particle_pos))
 			add_component(projectile, new_rigid_body(particle_emitter.velocity))
 			add_component(projectile, new_sprite("bullet-image", 4, 4, z_idx = 4))
@@ -278,7 +279,7 @@ update_particle_emit :: proc(system: ^System) {
 				projectile,
 				new_particle(
 					particle_emitter.is_friendly,
-					particle_emitter.hp_dmg,
+					particle_emitter.dmg,
 					particle_emitter.duration,
 				),
 			)
@@ -298,16 +299,67 @@ update_particle_life_cycle :: proc(system: ^System) {
 	}
 }
 
+on_projectile_hits_player :: proc(projectile, player: ^Entity) {
+	particle := get_particle(projectile)
+
+	if !particle.is_friendly {
+		health := get_health(player)
+		health.hp -= particle.dmg
+		inform(
+			"%von_particle_hits_player:%v player [id: %v, hp: %v] took %v damage",
+			PURPLE,
+			END,
+			player.id,
+			health.hp,
+			particle.dmg,
+		)
+		if health.hp <= 0 {
+			kill_entity(player)
+		}
+		kill_entity(projectile)
+	}
+}
+
+on_projectile_hits_enemy :: proc(projectile, enemy: ^Entity) {
+	particle := get_particle(projectile)
+	if particle.is_friendly {
+		health := get_health(enemy)
+		health.hp -= particle.dmg
+		inform(
+			"%von_particle_hits_enemy:%v %v took %v damage",
+			PURPLE,
+			END,
+			enemy.id,
+			particle.dmg,
+		)
+
+		if health.hp <= 0 {
+			kill_entity(enemy)
+		}
+		kill_entity(projectile)
+	}
+}
+
 on_collision :: proc(system: ^System, data: EventData) {
-	// kill_entity(data.(CollisionEvent).a)
-	// kill_entity(data.(CollisionEvent).b)
-	debug(
-		"%von_collision:%v %v is colliding with %v",
-		PURPLE,
-		END,
-		data.(CollisionEvent).a.id,
-		data.(CollisionEvent).b.id,
-	)
+	a := data.(CollisionEvent).a
+	b := data.(CollisionEvent).b
+	debug("%von_collision:%v %v is colliding with %v", PURPLE, END, a.id, b.id)
+
+	if belongs_to_group(a, "projectiles") && has_tag(b, "player") {
+		on_projectile_hits_player(a, b)
+	}
+
+	if belongs_to_group(b, "projectiles") && has_tag(a, "player") {
+		on_projectile_hits_player(b, a)
+	}
+
+	if belongs_to_group(a, "projectiles") && belongs_to_group(b, "enemies") {
+		on_projectile_hits_enemy(a, b)
+	}
+
+	if belongs_to_group(b, "projectiles") && belongs_to_group(a, "enemies") {
+		on_projectile_hits_enemy(b, a)
+	}
 }
 
 on_keypressed :: proc(system: ^System, data: EventData) {
@@ -363,13 +415,14 @@ on_shoot :: proc(system: ^System, data: EventData) {
 				particle_vel *= {x, y}
 
 				particle := create_entity(entity.owner)
+				group(particle, "projectiles")
 				add_component(particle, new_transform(particle_pos))
 				add_component(particle, new_rigid_body(particle_vel))
 				add_component(particle, new_sprite("bullet-image", 4, 4, z_idx = 4))
 				add_component(particle, new_box_collider(4, 4))
 				add_component(
 					particle,
-					new_particle(emitter.is_friendly, emitter.hp_dmg, emitter.duration),
+					new_particle(emitter.is_friendly, emitter.dmg, emitter.duration),
 				)
 			}
 		}

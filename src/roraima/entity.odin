@@ -3,6 +3,7 @@ package roraima
 import q "core:container/queue"
 import "core:fmt"
 import "core:os"
+import "core:slice"
 
 Entity :: struct {
 	id:     int,
@@ -51,6 +52,55 @@ kill_entity :: proc(entity: ^Entity) {
 	)
 }
 
+tag :: proc(entity: ^Entity, tag: string) {
+	if ok := entity.id in entity.owner.tag_per_entity; !ok {
+		entity.owner.tag_per_entity[entity.id] = tag
+		entity.owner.entity_per_tag[tag] = entity
+	}
+}
+
+has_tag :: proc(entity: ^Entity, tag: string) -> bool {
+	return entity.id in entity.owner.tag_per_entity
+}
+
+remove_tag :: proc(entity: ^Entity) {
+	if entity.id in entity.owner.tag_per_entity {
+		delete_key(&entity.owner.tag_per_entity, entity.id)
+	}
+}
+
+group :: proc(entity: ^Entity, group: string) {
+	if ok := entity.id in entity.owner.group_per_entity; !ok {
+		entity.owner.group_per_entity[entity.id] = group
+		if ok = group in entity.owner.entities_per_group; !ok {
+			entity.owner.entities_per_group[group] = make([dynamic]^Entity)
+		}
+		append(&entity.owner.entities_per_group[group], entity)
+		// slice.sort(entity.owner.entities_per_group[group][:])
+	}
+}
+
+belongs_to_group :: proc(entity: ^Entity, group: string) -> bool {
+	return(
+		entity.id in entity.owner.group_per_entity &&
+		entity.owner.group_per_entity[entity.id] == group \
+	)
+}
+
+remove_group :: proc(entity: ^Entity) {
+	if entity.id in entity.owner.group_per_entity {
+		group := entity.owner.group_per_entity[entity.id]
+		entities := entity.owner.entities_per_group[group]
+		for i := 0; i < len(entities); i += 1 {
+			if entities[i].id == entity.id {
+				ordered_remove(&entities, i)
+				break
+			}
+		}
+		delete_key(&entity.owner.group_per_entity, entity.id)
+	}
+}
+
 add_component :: proc(entity: ^Entity, component: ^Component) {
 	using entity.owner
 
@@ -67,7 +117,6 @@ add_component :: proc(entity: ^Entity, component: ^Component) {
 	if entity.id >= cap(component_pools[component_id]) {
 		resize(&component_pools[component_id], n_entities + 1)
 	}
-
 
 	inject_at(&component_pools[component_id], entity.id, component)
 
@@ -148,6 +197,10 @@ get_box_collider :: proc(data: ^Entity) -> ^BoxCollider {
 
 get_keyboard_controller :: proc(data: ^Entity) -> ^KeyboardController {
 	return get_component(data, .KeyboardController).(^KeyboardController)
+}
+
+get_health :: proc(data: ^Entity) -> ^Health {
+	return get_component(data, .Health).(^Health)
 }
 
 get_particle_emitter :: proc(data: ^Entity) -> ^ParticleEmitter {

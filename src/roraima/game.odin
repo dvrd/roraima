@@ -48,21 +48,21 @@ State :: struct {
 	enabled_systems: InitSystems,
 }
 
-new_game :: proc() -> ^State {
+new_game :: proc() -> (game: ^State, err: Error) {
 	inform(
 		"%vnew_game:%v Initializing game engine 'Roraima v1.0.0'",
 		PURPLE,
 		END,
 	)
 
-	game := new(State)
+	game = new(State) or_return
 	game.is_running = false
 	game.is_debug = false
-	game.registry = new_registry()
-	game.asset_store = new_asset_store()
-	game.event_bus = new_event_bus()
+	game.registry = new_registry() or_return
+	game.asset_store = new_asset_store() or_return
+	game.event_bus = new_event_bus() or_return
 
-	return game
+	return
 }
 
 init_game :: proc(game: ^State) {
@@ -295,9 +295,11 @@ run_game :: proc(
 
 destroy_game :: proc(game: ^State) {
 	using game
+	inform("%vdestroy_game:%v starting game destruction", PURPLE, END)
 
 	destroy_registry(registry)
 	delete_asset_store(asset_store)
+	inform("%vdestroy_game:%v starting game destruction", PURPLE, END)
 
 	SDL.DestroyWindow(window)
 	SDL.DestroyRenderer(renderer)

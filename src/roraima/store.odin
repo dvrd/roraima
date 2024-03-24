@@ -7,19 +7,10 @@ import "vendor:sdl2/image"
 
 AssetStore :: distinct map[string]^SDL.Texture
 
-new_asset_store :: proc() -> ^AssetStore {
-	store, err := new(AssetStore)
-	if err != nil {
-		error(
-			"%vnew_asset_store:%v Error creating new AssetStore: %v",
-			PURPLE,
-			END,
-			err,
-		)
-		os.exit(1)
-	}
+new_asset_store :: proc() -> (store: ^AssetStore, err: Error) {
+	store = new(AssetStore) or_return
 	inform("%vnew_asset_store:%v Created new AssetStore", PURPLE, END)
-	return store
+	return
 }
 
 delete_asset_store :: proc(store: ^AssetStore) {

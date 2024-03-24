@@ -38,24 +38,29 @@ error :: proc(message: string, args: ..any) {
 	log.errorf(message, ..args)
 }
 
-create_logger :: proc() -> log.Logger {
+create_logger :: proc() -> (logger: ^log.Logger, err: Error) {
+	logger = new(log.Logger) or_return
+
 	logger_options := log.Options{.Terminal_Color, .Level, .Time, .Date}
 	console_logger := log.create_console_logger(lowest, logger_options)
+
+	logger^ = console_logger
+
 	when ODIN_DEBUG {
-		fd, err := os.open(
+		fd, errno := os.open(
 			DEBUG_FILE,
 			os.O_RDWR | os.O_CREATE | os.O_APPEND,
 			os.S_IRUSR | os.S_IWUSR | os.S_IRGRP | os.S_IROTH,
 		)
-		if err != os.ERROR_NONE {
-			fmt.eprintln(ERRORNO_MSGS[err])
-			os.exit(1)
-		}
 		defer os.close(fd)
+		if Errno(errno) != .ERROR_NONE {
+			err = SystemError{.File, ERRORNO_MSGS[errno]}
+			return
+		}
 
 		file_logger := log.create_file_logger(fd, lowest, logger_options)
-		return log.create_multi_logger(file_logger, console_logger)
-	} else {
-		return console_logger
+		logger^ = log.create_multi_logger(file_logger, console_logger)
 	}
+
+	return
 }

@@ -36,11 +36,10 @@ EventBus :: struct {
 	subscribers: map[EventKind]Handlers,
 }
 
-new_event_bus :: proc() -> (bus: ^EventBus) {
-	subscribers := make(map[EventKind]Handlers)
-	bus = new(EventBus)
+new_event_bus :: proc() -> (bus: ^EventBus, err: Error) {
+	subscribers := make(map[EventKind]Handlers) or_return
+	bus = new(EventBus) or_return
 	bus.subscribers = subscribers
-
 	return
 }
 

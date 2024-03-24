@@ -209,7 +209,7 @@ ParticleEmitter :: struct {
 	velocity:    Vec2,
 	frequency:   int,
 	duration:    int,
-	hp_dmg:      int,
+	dmg:         int,
 	is_friendly: bool,
 	last_emit:   int,
 }
@@ -218,7 +218,7 @@ new_particle_emitter :: proc(
 	velocity: Vec2 = {0, 0},
 	frequency := 0,
 	duration := 10 * MILLISECOND,
-	hit_percentage_dmg := 10,
+	dmg := 10,
 	is_friendly := false,
 ) -> ^Component {
 	component, err := new(Component)
@@ -238,7 +238,7 @@ new_particle_emitter :: proc(
 		velocity,
 		frequency,
 		duration,
-		hit_percentage_dmg,
+		dmg,
 		is_friendly,
 		int(SDL.GetTicks()),
 	}
@@ -267,14 +267,14 @@ new_health :: proc(hp := 0) -> ^Component {
 
 Particle :: struct {
 	is_friendly: bool,
-	hp_dmg:      int,
+	dmg:         int,
 	lifespan:    int,
 	birth:       int,
 }
 
 new_particle :: proc(
 	is_friendly := false,
-	hp_dmg := 0,
+	dmg := 0,
 	lifespan := 0,
 ) -> ^Component {
 	component, err := new(Component)
@@ -292,7 +292,7 @@ new_particle :: proc(
 	component.id = .Particle
 	component.data.(^Particle)^ = Particle {
 		is_friendly = is_friendly,
-		hp_dmg      = hp_dmg,
+		dmg         = dmg,
 		lifespan    = lifespan,
 		birth       = int(SDL.GetTicks()),
 	}
