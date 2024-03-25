@@ -47,12 +47,21 @@ destroy_registry :: proc(registry: ^Registry) {
 
 	for pool in component_pools {
 		for component in pool {
-			delete_component(component)
+			if component != nil {
+				delete_component(component)
+			}
 		}
 		delete(pool)
 	}
 	delete(component_pools)
+	inform("%vdestroy_registry:%v component pools destroyed", PURPLE, END)
+
 	delete(entity_component_signatures)
+	inform(
+		"%vdestroy_registry:%v entity-component signatures destroyed",
+		PURPLE,
+		END,
+	)
 
 	delete(entities_to_add)
 	delete(entities_to_kill)

@@ -161,6 +161,7 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 
 		a_transform := get_transform(a)
 		a_collider := get_box_collider(a)
+
 		for j := i + 1; j < len(system.entities); j += 1 {
 			b := system.entities[j]
 
@@ -179,17 +180,11 @@ update_collision :: proc(system: ^System, bus: ^EventBus) {
 			)
 
 			if has_collided {
-				a_collider.color = {255, 255, 0, 255}
-				b_collider.color = {255, 255, 0, 255}
-
 				emit_event(
 					bus,
 					get_system(a.owner, .Damage),
 					{.Collision, CollisionEvent{a, b}},
 				)
-			} else {
-				a_collider.color = {255, 0, 0, 255}
-				b_collider.color = {255, 0, 0, 255}
 			}
 		}
 	}
@@ -203,12 +198,15 @@ update_render_collider :: proc(
 	for entity in system.entities {
 		transform := get_transform(entity)
 		collider := get_box_collider(entity)
+		clear_timeouts(collider)
+
 		collider_rect := SDL.Rect {
 			cast(i32)transform.position.x - camera.x,
 			cast(i32)transform.position.y - camera.y,
 			collider.width * cast(i32)transform.scale.x,
 			collider.height * cast(i32)transform.scale.y,
 		}
+
 		SDL.SetRenderDrawColor(
 			renderer,
 			collider.color.r,
@@ -254,37 +252,26 @@ update_camera_movement :: proc(
 
 update_particle_emit :: proc(system: ^System) {
 	for entity in system.entities {
-		particle_emitter := get_particle_emitter(entity)
+		emitter := get_particle_emitter(entity)
 		transform := get_transform(entity)
 
-		if particle_emitter.frequency == 0 {continue}
+		if emitter.frequency == 0 {continue}
 
-		time_since_last_emit := int(SDL.GetTicks()) - particle_emitter.last_emit
-		if time_since_last_emit > particle_emitter.frequency {
-			particle_pos := transform.position
+		time_since_last_emit := SDL.GetTicks() - emitter.last_emit
+		if time_since_last_emit > emitter.frequency {
+			pos := transform.position
+
 			if has_component(entity, .Sprite) {
 				sprite := get_sprite(entity)
-				particle_pos +=  {
+				pos +=  {
 					transform.scale.x * cast(f64)sprite.width / 2,
 					transform.scale.y * cast(f64)sprite.height / 2,
 				}
 			}
-			projectile := create_entity(entity.owner)
-			group(projectile, "projectiles")
-			add_component(projectile, new_transform(particle_pos))
-			add_component(projectile, new_rigid_body(particle_emitter.velocity))
-			add_component(projectile, new_sprite("bullet-image", 4, 4, z_idx = 4))
-			add_component(projectile, new_box_collider(4, 4))
-			add_component(
-				projectile,
-				new_particle(
-					particle_emitter.is_friendly,
-					particle_emitter.dmg,
-					particle_emitter.duration,
-				),
-			)
 
-			particle_emitter.last_emit = int(SDL.GetTicks())
+			create_particle(emitter, entity.owner, pos, emitter.velocity)
+
+			emitter.last_emit = SDL.GetTicks()
 		}
 	}
 }
@@ -305,6 +292,9 @@ on_projectile_hits_player :: proc(projectile, player: ^Entity) {
 	if !particle.is_friendly {
 		health := get_health(player)
 		health.hp -= particle.dmg
+
+		set_timeout(player, change_box_color_timeout)
+
 		inform(
 			"%von_particle_hits_player:%v player [id: %v, hp: %v] took %v damage",
 			PURPLE,
@@ -323,19 +313,24 @@ on_projectile_hits_player :: proc(projectile, player: ^Entity) {
 on_projectile_hits_enemy :: proc(projectile, enemy: ^Entity) {
 	particle := get_particle(projectile)
 	if particle.is_friendly {
+		defer set_timeout(enemy, change_box_color_timeout)
+
 		health := get_health(enemy)
 		health.hp -= particle.dmg
+
 		inform(
-			"%von_particle_hits_enemy:%v %v took %v damage",
+			"%von_particle_hits_enemy:%v enemy [id = %v, hp = %v] took [dmg = %v]",
 			PURPLE,
 			END,
 			enemy.id,
+			health.hp,
 			particle.dmg,
 		)
 
 		if health.hp <= 0 {
 			kill_entity(enemy)
 		}
+
 		kill_entity(projectile)
 	}
 }
@@ -390,42 +385,30 @@ on_shoot :: proc(system: ^System, data: EventData) {
 	event := data.(KeyPressedEvent)
 	#partial switch event.symbol {
 	case SDL.Keycode.SPACE:
-		for entity in system.entities {
-			if has_component(entity, .CameraFollow) {
-				emitter := get_particle_emitter(entity)
-				transform := get_transform(entity)
-				rigid_body := get_rigid_body(entity)
+		entity := event.player
+		emitter := get_particle_emitter(entity)
+		transform := get_transform(entity)
+		rigid_body := get_rigid_body(entity)
 
-				particle_pos := transform.position
-				if has_component(entity, .Sprite) {
-					sprite := get_sprite(entity)
-					particle_pos +=  {
-						transform.scale.x * cast(f64)sprite.width / 2,
-						transform.scale.y * cast(f64)sprite.height / 2,
-					}
-				}
-
-				particle_vel := emitter.velocity
-				x := 0.
-				y := 0.
-				if rigid_body.velocity.x > 0 {x += 1}
-				if rigid_body.velocity.x < 0 {x -= 1}
-				if rigid_body.velocity.y > 0 {y += 1}
-				if rigid_body.velocity.y < 0 {y -= 1}
-				particle_vel *= {x, y}
-
-				particle := create_entity(entity.owner)
-				group(particle, "projectiles")
-				add_component(particle, new_transform(particle_pos))
-				add_component(particle, new_rigid_body(particle_vel))
-				add_component(particle, new_sprite("bullet-image", 4, 4, z_idx = 4))
-				add_component(particle, new_box_collider(4, 4))
-				add_component(
-					particle,
-					new_particle(emitter.is_friendly, emitter.dmg, emitter.duration),
-				)
+		pos := transform.position
+		if has_component(entity, .Sprite) {
+			sprite := get_sprite(entity)
+			pos +=  {
+				transform.scale.x * cast(f64)sprite.width / 2,
+				transform.scale.y * cast(f64)sprite.height / 2,
 			}
 		}
+
+		vel := emitter.velocity
+		x := 0.
+		y := 0.
+		if rigid_body.velocity.x > 0 {x += 1}
+		if rigid_body.velocity.x < 0 {x -= 1}
+		if rigid_body.velocity.y > 0 {y += 1}
+		if rigid_body.velocity.y < 0 {y -= 1}
+		vel *= {x, y}
+
+		create_particle(emitter, entity.owner, pos, vel)
 	}
 }
 

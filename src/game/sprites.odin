@@ -49,7 +49,7 @@ setup_tank :: proc(game: ^roraima.State) {
 	add_component(tank, new_rigid_body({0, 0}))
 	add_component(tank, new_sprite("tank-image", 32, 32, z_idx = 1))
 	add_component(tank, new_box_collider(32, 32))
-	add_component(tank, new_particle_emitter({100, 0}, 5_000, 3_000))
+	// add_component(tank, new_particle_emitter({100, 0}, 5_000, 3_000))
 	add_component(tank, new_health(100))
 }
 
@@ -70,7 +70,7 @@ setup_truck :: proc(game: ^roraima.State) {
 	add_component(truck, new_rigid_body({0, 0}))
 	add_component(truck, new_sprite("truck-image", 32, 32, z_idx = 1))
 	add_component(truck, new_box_collider(32, 32))
-	add_component(truck, new_particle_emitter({0, 100}, 2_000, 5_000))
+	// add_component(truck, new_particle_emitter({0, 100}, 2_000, 5_000))
 	add_component(truck, new_health(100))
 }
 

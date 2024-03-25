@@ -43,12 +43,24 @@ create_entity :: proc(registry: ^Registry) -> ^Entity {
 }
 
 kill_entity :: proc(entity: ^Entity) {
-	append(&entity.owner.entities_to_kill, entity)
+	using entity.owner
+	append(&entities_to_kill, entity)
+
+	tag_info := "unknown"
+	if belongs_to_group(entity, "enemies") {
+		tag_info = "enemies"
+	} else if belongs_to_group(entity, "projectiles") {
+		tag_info = "projectiles"
+	} else if has_tag(entity, "player") {
+		tag_info = "player"
+	}
+
 	inform(
-		"%vkill_entity:%v Entity [id = %v] marked for deletion",
+		"%vkill_entity:%v Entity [id = %v, tag = %v] marked for deletion",
 		PURPLE,
 		END,
 		entity.id,
+		tag_info,
 	)
 }
 
@@ -209,4 +221,28 @@ get_particle_emitter :: proc(data: ^Entity) -> ^ParticleEmitter {
 
 get_particle :: proc(data: ^Entity) -> ^Particle {
 	return get_component(data, .Particle).(^Particle)
+}
+
+create_particle :: proc(
+	emitter: ^ParticleEmitter,
+	registry: ^Registry,
+	pos, vel: Vec2,
+) {
+	inform(
+		"%vcreate_particle:%v Particle emitter from Player at [x = %v, y = %v]",
+		PURPLE,
+		END,
+		pos.x,
+		pos.y,
+	)
+	particle := create_entity(registry)
+	group(particle, "projectiles")
+	add_component(particle, new_transform(pos))
+	add_component(particle, new_rigid_body(vel))
+	add_component(particle, new_sprite("bullet-image", 4, 4, z_idx = 4))
+	add_component(particle, new_box_collider(4, 4))
+	add_component(
+		particle,
+		new_particle(emitter.is_friendly, emitter.dmg, emitter.duration),
+	)
 }

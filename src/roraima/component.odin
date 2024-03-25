@@ -119,10 +119,11 @@ new_animation :: proc(frames, speed_rate: i32, is_loop := true) -> ^Component {
 }
 
 BoxCollider :: struct {
-	width:  i32,
-	height: i32,
-	offset: Vec2,
-	color:  [4]u8,
+	width:   i32,
+	height:  i32,
+	offset:  Vec2,
+	color:   [4]u8,
+	timeout: ^Timeout,
 }
 
 new_box_collider :: proc(
@@ -207,17 +208,17 @@ new_camera_follow :: proc() -> ^Component {
 
 ParticleEmitter :: struct {
 	velocity:    Vec2,
-	frequency:   int,
+	frequency:   u32,
 	duration:    int,
 	dmg:         int,
 	is_friendly: bool,
-	last_emit:   int,
+	last_emit:   u32,
 }
 
 new_particle_emitter :: proc(
 	velocity: Vec2 = {0, 0},
 	frequency := 0,
-	duration := 10 * MILLISECOND,
+	duration := 10 * SECOND,
 	dmg := 10,
 	is_friendly := false,
 ) -> ^Component {
@@ -236,11 +237,11 @@ new_particle_emitter :: proc(
 	}
 	component.data.(^ParticleEmitter)^ = ParticleEmitter {
 		velocity,
-		frequency,
+		cast(u32)frequency,
 		duration,
 		dmg,
 		is_friendly,
-		int(SDL.GetTicks()),
+		SDL.GetTicks(),
 	}
 	return component
 }

@@ -7,9 +7,21 @@ import "core:time"
 import SDL "vendor:sdl2"
 
 FPS :: 60
-MILLISECOND :: 1_000
-MS_PER_FRAME :: MILLISECOND / FPS
-NS_PER_SEC :: 100_000_000
+SECOND :: 1_000
+
+Colors :: enum {
+	Red,
+	Green,
+	Blue,
+	Yellow,
+}
+
+GAME_COLORS := map[Colors][4]u8 {
+	.Red    = [4]u8{255, 0, 0, 255},
+	.Green  = [4]u8{0, 255, 0, 255},
+	.Blue   = [4]u8{0, 0, 255, 255},
+	.Yellow = [4]u8{255, 255, 0, 255},
+}
 
 Vec2 :: [2]f64
 InitSystems :: bit_set[SystemType]
@@ -38,7 +50,7 @@ State :: struct {
 		delta:       f64,
 		delta_ms:    u32,
 		last_frame:  u32,
-		last_second: i64,
+		last_second: u32,
 		fps:         u32,
 		frames:      u32,
 	},
@@ -78,17 +90,18 @@ init_game :: proc(game: ^State) {
 	camera = {
 		x = 0,
 		y = 0,
-		w = displayMode.w,
-		h = displayMode.h,
+		w = 800, //displayMode.w,
+		h = 640, //displayMode.h,
 	}
 
 	window = SDL.CreateWindow(
-		"Roraima v1.0.0",
-		SDL.WINDOWPOS_CENTERED,
-		SDL.WINDOWPOS_CENTERED,
-		camera.w,
-		camera.h,
-		{.BORDERLESS, .FULLSCREEN},
+	"Roraima v1.0.0",
+	SDL.WINDOWPOS_CENTERED,
+	SDL.WINDOWPOS_CENTERED,
+	camera.w,
+	camera.h,
+	{},
+	// {.BORDERLESS, .FULLSCREEN},
 	)
 	if window == nil {
 		error("%vinitialize:%v window bad", PURPLE, END)
@@ -120,7 +133,13 @@ process_input :: proc(game: ^State) {
 			emit_event(
 				event_bus,
 				get_system(registry, .KeyboardControl),
-				{.KeyPressed, KeyPressedEvent{event.key.keysym.sym}},
+				 {
+					.KeyPressed,
+					KeyPressedEvent {
+						get_entity(registry, "player"),
+						event.key.keysym.sym,
+					},
+				},
 			)
 			break loop
 		case .QUIT:
@@ -198,18 +217,18 @@ setup_game :: proc(
 
 update_game :: proc(game: ^State) {
 	using game
-	now := time.time_to_unix_nano(time.now())
+	now := SDL.GetTicks()
 
-	clock.delta_ms = SDL.GetTicks() - clock.last_frame
-	clock.delta = cast(f64)(clock.delta_ms) / MILLISECOND
+	clock.delta_ms = now - clock.last_frame
+	clock.delta = cast(f64)(clock.delta_ms) / SECOND
 
 	clock.frames += 1
 
-	if now - clock.last_second > NS_PER_SEC {
+	if now - clock.last_second > SECOND {
 		clock.last_second = now
 		clock.fps = clock.frames
 		clock.frames = 0
-		debug("FPS: %v", clock.fps)
+		inform("FPS: %v", clock.fps)
 	}
 
 	clear(&event_bus.subscribers)

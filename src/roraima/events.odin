@@ -8,6 +8,7 @@ CollisionEvent :: struct {
 }
 
 KeyPressedEvent :: struct {
+	player: ^Entity,
 	symbol: SDL.Keycode,
 }
 
