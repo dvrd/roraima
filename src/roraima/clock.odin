@@ -24,7 +24,7 @@ change_box_color_timeout :: proc(entity: ^Entity) {
 	}
 	inform("change_box_color_timeout: %v", entity.id)
 	timeout, err := new_timeout(0.2)
-	handle_err(err, "on_projectile_hits_player: failed to initiate timeout %v")
+	catch(err, "failed to initiate timeout")
 	collider.timeout = timeout
 }
 

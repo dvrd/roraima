@@ -27,11 +27,11 @@ main :: proc() {
 	err: Error
 
 	logger, err = create_logger()
-	handle_err(err, "main: could not create logger %v")
+	catch(err, "could not create logger")
 	context.logger = logger^
 
 	game, err = new_game()
-	handle_err(err, "main: could not create game %v")
+	catch(err, "could not create game")
 
 	init_game(game)
 	run_game(game, INIT_ALL_SYSTEMS, setup)

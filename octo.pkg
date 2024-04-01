@@ -1,0 +1,11 @@
+{
+    name: "roraima",
+    owner: "Dan<dan@devoured.io>",
+    version: "0.1.0",
+    description: "2d game engine",
+    url: "https://github.comdvrd//roraima",
+    readme: "",
+    license: "",
+    keywords: [],
+    dependencies: {}
+}
